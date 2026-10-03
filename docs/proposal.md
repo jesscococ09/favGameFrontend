@@ -14,25 +14,51 @@ The API holds user information. The API also holds video game information. This 
 Tables, primary and foreign keys, and cardinality. Edit this Mermaid diagram (it renders on GitHub;  
 try changes at [https://mermaid.live](https://mermaid.live)):
 
-\`\`\`mermaid  
-erDiagram  
-   USER ||--o{ API : owns  
-    USER {  
-       string id pk  
-       string displayname  
+\`\`\`
+
+erDiagram
+    USER ||--o{ API : owns
+    ADMIN ||--o{ recommendedGames : owns
+    ADMIN ||--o{ USER : owns
+    
+    ADMIN{
+        string user_id 
+        string password
+        boolean admintrue
+    }
+    USER {
+        string user_id pk
+        string password
+        string displayname
+        boolean adminfalse 
         
-   }  
-   API {  
-       string id pk  
-       string user\_id fk  
-       string thumbNail  
-       string gameNAME  
-       string gameDescription  
-       string platform  
-       string genre  
-       int rating  
-       string comment  
-   }  
+    }
+   
+    API {
+        string id pk
+        string user_id fk
+        string thumbNail
+        string gameNAME
+        string gameDescription
+        string platform
+        string genre
+        int rating
+        string comment
+       
+    }
+    recommendedGames{
+      string id
+        string thumbNail
+        string gameNAME
+        string gameDescription
+        string platform
+        string genre
+        int rating
+        string comment
+    }
+   
+ 
+    
 \`\`\`
 
 \#\# 4\. Endpoints  
