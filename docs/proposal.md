@@ -17,10 +17,10 @@ try changes at [https://mermaid.live](https://mermaid.live)):
 \`\`\`
 
 erDiagram
-USER ||--o{ API : owns
-ADMIN ||--o{ recommendedGames : owns
-ADMIN ||--o{ USER : owns
-
+    USER ||--o{ API : owns
+    ADMIN ||--o{ recommendedGames : owns
+    ADMIN ||--o{ USER : owns
+    
     ADMIN{
         string user_id 
         string password
@@ -56,9 +56,9 @@ ADMIN ||--o{ USER : owns
         int rating
         string comment
     }
-
-
-
+   
+ 
+    
 \`\`\`
 
 \#\# 4\. Endpoints  
