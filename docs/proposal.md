@@ -64,22 +64,32 @@ erDiagram
 \#\# 4\. Endpoints  
 | Verb | Path | Auth | Purpose |  
 |---|---|---|---|  
-| POST | /favGame/v1/auth/register | public | creates new user |  
-| POST | /favGame/v1/auth/login | public | authenticate user |  
-| GET | /favGame/v1/users/| user | retrieve profile info |  
-| PATCH | /favGame/v1/users/password | user | update password |  
-| PATCH | /favGame/v1/users/icon | user | update user icon |  
-| DELETE | /favGame/v1/users/ | user | delete user |  
-| GET | /favGame/v1/users/games?page=0\&size=10 | user | list games (paginated) |  
-| GET | /favGame/v1/users/games?sort=alphabetical | user | sorts games alphabetically (sorts) |  
-| GET | /favGame/v1/users/games?sort=columnName | user | sort by column (sorts) |  
-| GET | /favGame/v1/users/games?genre={genreType} | user | filters games (filters) |  
-| GET | /favGame/v1/users/games/search?query={gameName} | user | search games (filters) |  
-| GET | /favGame/v1/users/games/{id} | user | view a single game |  
-| POST | /favGame/v1/users/games | user | add game |  
-| PUT | /favGame/v1/users/games/{id} | user | update game |  
-| DELETE | /favGame/v1/games/{id} | user | delete game |  
-| POST | /favGame/v1/users/games/{id}/comments | user | add comments |  
+| POST | /favGame/v1/auth/register | public | creates new user |
+| POST | /favGame/v1/auth/login | public | authenticate user |
+| GET | /favGame/v1/users/ | user | retrieve profile info |
+| PATCH | /favGame/v1/users/password | user | update password |
+| PATCH | /favGame/v1/users/icon | user | update user icon |
+| DELETE | /favGame/v1/users/ | user | delete user |
+| GET | /favGame/v1/users/games?page=0&size=10 | user | list games (paginated) |
+| GET | /favGame/v1/users/games?sort=alphabetical | user | sorts games alphabetically |
+| GET | /favGame/v1/users/games?sort=columnName | user | sort by column |
+| GET | /favGame/v1/users/games?genre={genreType} | user | filter games by genre |
+| GET | /favGame/v1/users/games/search?query={gameName} | user | search games |
+| GET | /favGame/v1/users/games/{id} | user | view a single game in user's library |
+| POST | /favGame/v1/users/games | user | add game to user's library |
+| PUT | /favGame/v1/users/games/{id} | user | replace entire game entry |
+| PATCH | /favGame/v1/users/games/{id} | user | update rating or comment |
+| DELETE | /favGame/v1/users/games/{id} | user | remove a game from user's library |
+| POST | /favGame/v1/users/games/{id}/comments | user | add comments |
+| GET | /favGame/v1/games | user | list available games |
+| GET | /favGame/v1/games/{id} | user,admin | view game information |
+| GET | /favGame/v1/recommendations | user | view admin game recommendations |
+| GET | /favGame/v1/admin | admin | list all users |
+| GET | /favGame/v1/admin/{userId} | admin | view one user |
+| PATCH | /favGame/v1/admin/{userId} | admin | update a user (grant/revoke admin) |
+| DELETE | /favGame/v1/admin/{userId} | admin | delete a user and all their data |
+| POST | /favGame/v1/recommendations | admin | create a game recommendation |
+| DELETE | /favGame/v1/recommendations/{id} | admin | delete a recommendation |
 | ... | ... | ... | ... |  
 Mark each endpoint \`public\`, \`user\`, or \`admin\`. Mark which collection paginates and which  
 filters or sorts.
