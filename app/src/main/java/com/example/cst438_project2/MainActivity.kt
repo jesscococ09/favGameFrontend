@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
             LoginScreen(
                 onLoginClick = {
                     // TODO:
-                    // We'll put the GitHub OAuth code here later.
+                    // Finish wiring it up, once the API is connected.
                     // For now, just confirm that the button works.
                 }
             )
