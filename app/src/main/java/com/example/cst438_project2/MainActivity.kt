@@ -13,10 +13,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GameListScreen(
-                games = sampleGames,
-                onGameClick = { },
-                modifier = Modifier.fillMaxSize().safeDrawingPadding()
+            LoginScreen(
+                onLoginClick = {
+                    // TODO:
+                    // We'll put the GitHub OAuth code here later.
+                    // For now, just confirm that the button works.
+                }
             )
         }
     }
