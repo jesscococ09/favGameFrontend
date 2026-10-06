@@ -13,10 +13,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GameListScreen(
-                games = sampleGames,
-                onGameClick = { },
-                modifier = Modifier.fillMaxSize().safeDrawingPadding()
+            LoginScreen(
+                onLoginClick = {
+                    // TODO:
+                    // Finish wiring it up, once the API is connected.
+                    // For now, just confirm that the button works.
+                }
             )
         }
     }
