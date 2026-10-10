@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.example.cst438_project2.ui.screens.LoginScreen
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
