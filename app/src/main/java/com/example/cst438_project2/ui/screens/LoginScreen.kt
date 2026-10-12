@@ -39,6 +39,7 @@ private val SecondaryText = Color(0xFFAAA5B0) // So that way, it's easier to cod
 fun LoginScreen(
     onLoginClick: () -> Unit
 ) {
+    //PKCE and github auth is handled by mainactivity
     Box(
         modifier = Modifier
             .fillMaxSize()
