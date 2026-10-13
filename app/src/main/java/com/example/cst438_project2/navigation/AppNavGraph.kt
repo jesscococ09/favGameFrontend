@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,7 +24,10 @@ import com.example.cst438_project2.ui.screens.sampleGames
 @Composable
 fun AppNavGraph(
     isLoggedIn: Boolean,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    // Tests can provide their own controller.
+    // Normal app usage still creates one automatically.
+    navController: NavHostController = rememberNavController()
 ) {
     // Holds the current screen and navigation back stack.
     val navController = rememberNavController()
