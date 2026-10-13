@@ -6,12 +6,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    //TODO: replace with render url
-    private const val BASE_URL= "http://10.0.2.2:8080/favGame/v1/"
-    private val logging= HttpLoggingInterceptor().apply {
-        level= HttpLoggingInterceptor.Level.BODY
+    private const val BASE_URL = "https://favgame-backend.onrender.com/favGame/v1/"
+    fun create(token: String): Retrofit {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        val client = OkHttpClient.Builder().addInterceptor(logging).addInterceptor(AuthInterceptor(token)).build()
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL).client(client).addConverterFactory(GsonConverterFactory.create()).build()
     }
-    private val client= OkHttpClient.Builder().addInterceptor(logging).build()
-    val retrofit: Retrofit= Retrofit.Builder().baseUrl(BASE_URL).client(client)
-        .addConverterFactory(GsonConverterFactory.create()).build()
 }
