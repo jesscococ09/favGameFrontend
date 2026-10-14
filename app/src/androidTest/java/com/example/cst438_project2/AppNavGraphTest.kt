@@ -55,8 +55,6 @@ class AppNavGraphTest {
         launchGraph(isLoggedIn = false)
 
         // The login screen should be visible immediately.
-        // Replace this text with the actual login-screen text
-        // if your LoginScreen uses a different label.
         composeRule.onNodeWithText(
             "Login",
             substring = true

@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.cst438_project2.ui.screens.AddGameScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -100,9 +101,18 @@ fun AppNavGraph(
 
         // TODO: Replace with the real Add Game screen composable.
         composable(FavGameRoutes.ADD_GAME) {
-            PlaceholderScreen(
-                title = "Add Game",
-                onBack = { navController.popBackStack() }
+            AddGameScreen(
+                // The screen's back arrow returns to the game list.
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                // For now, handle the submitted game without saving it
+                // to the backend. We can connect the API afterward.
+                onSaveClick = { newGame ->
+                    // TODO: Send newGame to the backend and update the game list.
+                    // Return to the game list for now.
+                    navController.popBackStack()
+                }
             )
         }
     }
