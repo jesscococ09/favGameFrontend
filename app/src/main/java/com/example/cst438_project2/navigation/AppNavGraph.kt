@@ -22,12 +22,14 @@ import androidx.navigation.navArgument
 import com.example.cst438_project2.ui.screens.Game
 import com.example.cst438_project2.ui.screens.GameListScreen
 import com.example.cst438_project2.ui.screens.LoginScreen
+import com.example.cst438_project2.ui.screens.SettingsScreen
 import com.example.cst438_project2.ui.screens.sampleGames
 
 @Composable
 fun AppNavGraph(
     isLoggedIn: Boolean,
     onLoginClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
     // Tests can provide their own controller.
     // Normal app usage still creates one automatically.
     navController: NavHostController = rememberNavController()
@@ -109,13 +111,28 @@ fun AppNavGraph(
 
         // TODO: Replace with the real Profile screen composable.
         composable(FavGameRoutes.PROFILE) {
-            PlaceholderScreen(
-                title = "Profile",
-                onBack = { navController.popBackStack() }
+            SettingsScreen(
+                // Back returns to the game list.
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                // MainActivity will clear the saved login token.
+                onLogoutClick = {
+                    onLogoutClick()
+
+                    // Remove the game list and settings from the back stack,
+                    // so Back cannot reopen the logged-in screens.
+                    navController.navigate(FavGameRoutes.LOGIN) {
+                        popUpTo(FavGameRoutes.GAME_LIST) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
-        // TODO: Replace with the real Add Game screen composable.
         composable(FavGameRoutes.ADD_GAME) {
             AddGameScreen(
                 // The screen's back arrow returns to the game list.

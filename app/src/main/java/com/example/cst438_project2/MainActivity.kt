@@ -42,7 +42,10 @@ class MainActivity : ComponentActivity() {
                         Uri.parse(url)
                     )
                     startActivity(intent)
-                }
+                },
+
+                // Clear the saved access token and code verifier.
+                { authStorage.clear() }
             )
         }
     }
