@@ -10,6 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.dialog
+import com.example.cst438_project2.ui.screens.GameDetailsPopup
+import com.example.cst438_project2.ui.screens.AddGameScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,12 +22,15 @@ import androidx.navigation.navArgument
 import com.example.cst438_project2.ui.screens.Game
 import com.example.cst438_project2.ui.screens.GameListScreen
 import com.example.cst438_project2.ui.screens.LoginScreen
+import com.example.cst438_project2.ui.screens.SettingsScreen
 import com.example.cst438_project2.ui.screens.sampleGames
 
 @Composable
 fun AppNavGraph(
     isLoggedIn: Boolean,
     onLoginClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
+    isAdmin: Boolean = false,
     // Tests can provide their own controller.
     // Normal app usage still creates one automatically.
     navController: NavHostController = rememberNavController()
@@ -73,7 +79,7 @@ fun AppNavGraph(
         }
 
         // Game details receives the selected game's ID.
-        composable(
+        dialog(
             route = "${FavGameRoutes.GAME_DETAILS}/{gameId}",
             arguments = listOf(
                 navArgument("gameId") {
@@ -81,28 +87,67 @@ fun AppNavGraph(
                 }
             )
         ) { entry ->
-            // Read the ID passed from the game list.
+            // Read the selected game's ID from the navigation route.
             val gameId = entry.arguments?.getInt("gameId") ?: -1
+            // Find the selected game in the current sample list.
+            val game = sampleGames.find { it.id == gameId }
 
-            PlaceholderScreen(
-                title = "Game Details — Game ID: $gameId",
-                onBack = { navController.popBackStack() }
-            )
+            if (game != null) {
+                GameDetailsPopup(
+                    game = game,
+                    onClose = {
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                // If the ID isn't found, allow the user to close the popup.
+                PlaceholderScreen(
+                    title = "Game not found",
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
 
         // TODO: Replace with the real Profile screen composable.
         composable(FavGameRoutes.PROFILE) {
-            PlaceholderScreen(
-                title = "Profile",
-                onBack = { navController.popBackStack() }
+            SettingsScreen(
+                // Back returns to the game list.
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                // MainActivity will clear the saved login token.
+                onLogoutClick = {
+                    onLogoutClick()
+
+                    // Remove the game list and settings from the back stack,
+                    // so Back cannot reopen the logged-in screens.
+                    navController.navigate(FavGameRoutes.LOGIN) {
+                        popUpTo(FavGameRoutes.GAME_LIST) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                isAdmin = isAdmin
             )
         }
 
-        // TODO: Replace with the real Add Game screen composable.
         composable(FavGameRoutes.ADD_GAME) {
-            PlaceholderScreen(
-                title = "Add Game",
-                onBack = { navController.popBackStack() }
+            AddGameScreen(
+                // The screen's back arrow returns to the game list.
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                // For now, handle the submitted game without saving it
+                // to the backend. We can connect the API afterward.
+                onSaveClick = { newGame ->
+                    // TODO: Send newGame to the backend and update the game list.
+                    // Return to the game list for now.
+                    navController.popBackStack()
+                }
             )
         }
     }

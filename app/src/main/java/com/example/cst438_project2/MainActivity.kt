@@ -42,7 +42,11 @@ class MainActivity : ComponentActivity() {
                         Uri.parse(url)
                     )
                     startActivity(intent)
-                }
+                },
+
+                // Clear the saved access token and code verifier.
+                { authStorage.clear() },
+                isAdmin = true // TEMPORARY, for testing only.
             )
         }
     }
