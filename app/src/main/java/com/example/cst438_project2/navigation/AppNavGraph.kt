@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.dialog
+import com.example.cst438_project2.ui.screens.GameDetailsPopup
 import com.example.cst438_project2.ui.screens.AddGameScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -74,7 +76,7 @@ fun AppNavGraph(
         }
 
         // Game details receives the selected game's ID.
-        composable(
+        dialog(
             route = "${FavGameRoutes.GAME_DETAILS}/{gameId}",
             arguments = listOf(
                 navArgument("gameId") {
@@ -82,13 +84,27 @@ fun AppNavGraph(
                 }
             )
         ) { entry ->
-            // Read the ID passed from the game list.
+            // Read the selected game's ID from the navigation route.
             val gameId = entry.arguments?.getInt("gameId") ?: -1
+            // Find the selected game in the current sample list.
+            val game = sampleGames.find { it.id == gameId }
 
-            PlaceholderScreen(
-                title = "Game Details — Game ID: $gameId",
-                onBack = { navController.popBackStack() }
-            )
+            if (game != null) {
+                GameDetailsPopup(
+                    game = game,
+                    onClose = {
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                // If the ID isn't found, allow the user to close the popup.
+                PlaceholderScreen(
+                    title = "Game not found",
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
 
         // TODO: Replace with the real Profile screen composable.

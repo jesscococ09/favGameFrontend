@@ -39,7 +39,15 @@ data class Game(
     val id: Int,
     val title: String,
     val imageUrl: String,
-    val updates: Int = 0   // number shown on the badge
+    val updates: Int = 0,  // number shown on the badge
+
+    // Optional details for the popup.
+    // These are temporary UI defaults until real game data is connected.
+    val description: String = "No description available yet.",
+    val platform: String = "Not specified",
+    val genre: String = "Not specified",
+    val rating: Int = 0,
+    val comment: String = "No comment yet."
 )
 
 // Test data until the API is connected
