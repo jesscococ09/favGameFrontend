@@ -36,6 +36,7 @@ private val SettingsDanger = Color(0xFFB3261E)
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    isAdmin: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // Temporary UI state. These values are not saved to the backend.
@@ -43,6 +44,10 @@ fun SettingsScreen(
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var profileImageUri by remember { mutableStateOf<String?>(null) }
+    // Temporary UI state for admin actions.
+    var targetUsername by remember { mutableStateOf("") }
+    var targetComment by remember { mutableStateOf("") }
+    var pendingAdminAction by remember { mutableStateOf<String?>(null) }
 
     // Opens the device's image picker for the profile icon.
     val imagePicker = rememberLauncherForActivityResult(
@@ -182,6 +187,85 @@ fun SettingsScreen(
                 )
             }
 
+
+            if (isAdmin) {
+                // ADMIN FEATURE 1: Delete a user's comment.
+                SettingsSection(title = "Delete User Comment") {
+                    Text(
+                        text = "Remove an inappropriate or unwanted comment.",
+                        color = Color.LightGray,
+                        fontSize = 14.sp
+                    )
+
+                    SettingsTextField(
+                        value = targetUsername,
+                        onValueChange = { targetUsername = it },
+                        label = "Username",
+                        placeholder = "Enter the comment author's username"
+                    )
+
+                    SettingsTextField(
+                        value = targetComment,
+                        onValueChange = { targetComment = it },
+                        label = "Comment",
+                        placeholder = "Identify the comment to remove"
+                    )
+
+                    Button(
+                        onClick = {
+                            pendingAdminAction = "comment"
+                        },
+                        enabled = targetUsername.isNotBlank() &&
+                                targetComment.isNotBlank(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SettingsDanger,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Delete User Comment")
+                    }
+                }
+
+                // ADMIN FEATURE 2: Delete a user account.
+                SettingsSection(title = "Delete User") {
+                    Text(
+                        text = "Remove a user's account. This is separate " +
+                                "from deleting your own account.",
+                        color = Color.LightGray,
+                        fontSize = 14.sp
+                    )
+
+                    SettingsTextField(
+                        value = targetUsername,
+                        onValueChange = { targetUsername = it },
+                        label = "Username",
+                        placeholder = "Enter the username to remove"
+                    )
+
+                    Button(
+                        onClick = {
+                            pendingAdminAction = "user"
+                        },
+                        enabled = targetUsername.isNotBlank(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SettingsDanger,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Delete User")
+                    }
+                }
+            }
+
+
             // Log out
             SettingsSection(title = "Session") {
                 Text(
@@ -249,6 +333,54 @@ fun SettingsScreen(
             textContentColor = Color.LightGray
         )
     }
+
+
+    if (pendingAdminAction != null) {
+        val actionName = if (pendingAdminAction == "comment") {
+            "Delete User Comment"
+        } else {
+            "Delete User"
+        }
+
+        AlertDialog(
+            onDismissRequest = {
+                pendingAdminAction = null
+            },
+            title = {
+                Text(actionName)
+            },
+            text = {
+                Text(
+                    "This is a UI preview. No comments or user accounts " +
+                            "will be deleted until the admin functionality is connected."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // TODO: Connect the appropriate admin API.
+                        // No deletion happens in this UI-only version.
+                        pendingAdminAction = null
+                    }
+                ) {
+                    Text("Got it")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingAdminAction = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = SettingsSurface,
+            titleContentColor = Color.White,
+            textContentColor = Color.LightGray
+        )
+    }
+
 }
 
 @Composable

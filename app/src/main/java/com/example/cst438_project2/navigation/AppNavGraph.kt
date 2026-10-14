@@ -30,6 +30,7 @@ fun AppNavGraph(
     isLoggedIn: Boolean,
     onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit = {},
+    isAdmin: Boolean = false,
     // Tests can provide their own controller.
     // Normal app usage still creates one automatically.
     navController: NavHostController = rememberNavController()
@@ -129,7 +130,8 @@ fun AppNavGraph(
                         }
                         launchSingleTop = true
                     }
-                }
+                },
+                isAdmin = isAdmin
             )
         }
 

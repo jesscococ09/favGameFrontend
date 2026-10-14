@@ -45,7 +45,8 @@ class MainActivity : ComponentActivity() {
                 },
 
                 // Clear the saved access token and code verifier.
-                { authStorage.clear() }
+                { authStorage.clear() },
+                isAdmin = true // TEMPORARY, for testing only.
             )
         }
     }
