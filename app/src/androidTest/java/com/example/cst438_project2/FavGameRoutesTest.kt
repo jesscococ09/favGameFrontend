@@ -1,0 +1,32 @@
+package com.example.cst438_project2.navigation
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class FavGameRoutesTest {
+
+    @Test
+    fun loginRoute_hasExpectedValue() {
+        assertEquals("login", FavGameRoutes.LOGIN)
+    }
+
+    @Test
+    fun gameListRoute_hasExpectedValue() {
+        assertEquals("game_list", FavGameRoutes.GAME_LIST)
+    }
+
+    @Test
+    fun gameDetailsRoute_hasExpectedValue() {
+        assertEquals("game_details", FavGameRoutes.GAME_DETAILS)
+    }
+
+    @Test
+    fun profileRoute_hasExpectedValue() {
+        assertEquals("profile", FavGameRoutes.PROFILE)
+    }
+
+    @Test
+    fun addGameRoute_hasExpectedValue() {
+        assertEquals("add_game", FavGameRoutes.ADD_GAME)
+    }
+}
