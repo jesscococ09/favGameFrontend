@@ -8,8 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-
-class ApiViewModel(private val repository: ApiRepository): ViewModel(){
+class ApiViewModel(
+    private val repository: ApiRepository
+) : ViewModel() {
     private val _games = MutableStateFlow<List<Api>>(emptyList())
     val games: StateFlow<List<Api>> = _games
     private val _selectedGame = MutableStateFlow<Api?>(null)
@@ -18,12 +19,13 @@ class ApiViewModel(private val repository: ApiRepository): ViewModel(){
     val loading: StateFlow<Boolean> = _loading
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
-
     fun loadGames(token: String) {
         viewModelScope.launch {
             try {
                 _loading.value = true
-                _games.value = repository.listMyGames(token)
+                _error.value = null
+                val result = repository.listMyGames(token)
+                _games.value = result
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
@@ -31,11 +33,19 @@ class ApiViewModel(private val repository: ApiRepository): ViewModel(){
             }
         }
     }
-    fun loadGame(token: String, id: String) {
+    fun loadGame(
+        token: String,
+        id: String
+    ) {
         viewModelScope.launch {
             try {
                 _loading.value = true
-                _selectedGame.value = repository.getMyGame(token, id)
+                _error.value = null
+                val result = repository.getMyGame(
+                    token,
+                    id
+                )
+                _selectedGame.value = result
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {

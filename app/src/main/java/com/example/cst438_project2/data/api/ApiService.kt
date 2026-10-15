@@ -12,74 +12,51 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
+
     @GET("users/games")
     suspend fun listMyGames(
-        @Header("Authorization")
-        token: String,
-        @Query("page")
-        page:Int?=null,
-        @Query("size")
-        size: Int? = null,
-        @Query("sort")
-        sort: String? = null,
-        @Query("genre")
-        genre: String? = null
+        @Header("Authorization") token: String,
+        @Query("page") page: Int? = null,
+        @Query("size") size: Int? = null,
+        @Query("sort") sort: String? = null,
+        @Query("genre") genre: String? = null
     ): List<Api>
     @GET("users/games/search")
     suspend fun searchMyGames(
-        @Header("Authorization")
-        token: String,
-        @Query("query")
-        query: String
+        @Header("Authorization") token: String,
+        @Query("query") query: String
     ): List<Api>
     @GET("users/games/{id}")
     suspend fun getMyGame(
-        @Header("Authorization")
-        token: String,
-        @Path("id")
-        id: String
+        @Header("Authorization") token: String,
+        @Path("id") id: String
     ): Api
-
     @POST("users/games")
     suspend fun addGame(
-        @Header("Authorization")
-        token: String,
-        @Body
-        body: Map<String, Any>
+        @Header("Authorization") token: String,
+        @Body body: Map<String, Any>
     ): Api
     @PUT("users/games/{id}")
     suspend fun replaceGame(
-        @Header("Authorization")
-        token: String,
-        @Path("id")
-        id: String,
-        @Body
-        body: Map<String, Any>
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: Map<String, Any>
     ): Api
     @PATCH("users/games/{id}")
     suspend fun updateGame(
-        @Header("Authorization")
-        token: String,
-        @Path("id")
-        id: String,
-        @Body
-        body: Map<String, Any>
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: Map<String, Any>
     ): Api
     @DELETE("users/games/{id}")
     suspend fun deleteGame(
-        @Header("Authorization")
-        token: String,
-        @Path("id")
-        id: String
-    ): Api
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Map<String, String>
     @POST("users/games/{id}/comments")
     suspend fun addComment(
-        @Header("Authorization")
-        token: String,
-        @Path("id")
-        id: String,
-        @Body
-        body: Map<String, Any>
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: Map<String, Any>
     ): Api
-
 }
