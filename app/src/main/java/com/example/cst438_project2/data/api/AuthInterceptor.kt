@@ -3,12 +3,19 @@ package com.example.cst438_project2.data.api
 import okhttp3.Interceptor
 import okhttp3.Response
 
-class AuthInterceptor(private val token: String?) : Interceptor {
+class AuthInterceptor(
+    private val token: String?
+) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val builder = chain.request().newBuilder()
+        val requestBuilder = chain.request().newBuilder()
         if (!token.isNullOrBlank()) {
-            builder.addHeader("Authorization", "Bearer $token")
+            requestBuilder.header(
+                "Authorization",
+                "Bearer $token"
+            )
         }
-        return chain.proceed(builder.build())
+        val request = requestBuilder.build()
+        println("AUTH INTERCEPTOR: Authorization header added")
+        return chain.proceed(request)
     }
 }

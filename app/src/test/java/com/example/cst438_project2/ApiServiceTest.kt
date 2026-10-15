@@ -11,29 +11,25 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-
 class ApiServiceTest {
-
     private lateinit var server: MockWebServer
     private lateinit var service: ApiService
-
     @Before
     fun setup() {
         server = MockWebServer()
         server.start()
-
         service = Retrofit.Builder()
             .baseUrl(server.url("/"))
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(
+                GsonConverterFactory.create()
+            )
             .build()
             .create(ApiService::class.java)
     }
-
     @After
     fun teardown() {
         server.shutdown()
     }
-
     @Test
     fun `listMyGames parses correctly`() = runBlocking {
         val mockJson = """
@@ -54,14 +50,64 @@ class ApiServiceTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
+                .setHeader(
+                    "Content-Type",
+                    "application/json"
+                )
                 .setBody(mockJson)
         )
-        val result = service.listMyGames("Bearer token")
+        val result = service.listMyGames(
+            token = "Bearer token"
+        )
         assertEquals(1, result.size)
         assertEquals("Halo", result[0].gameName)
         assertEquals(5, result[0].rating)
         val request = server.takeRequest()
-        assertEquals("/users/games", request.path)
-        assertEquals("Bearer token", request.getHeader("Authorization"))
+        assertEquals(
+            "/users/games",
+            request.path
+        )
+        assertEquals(
+            "Bearer token",
+            request.getHeader("Authorization")
+        )
+    }
+    @Test
+    fun `deleteGame parses deleted status`() = runBlocking {
+        val mockJson = """
+            {
+                "status": "deleted"
+            }
+        """.trimIndent()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader(
+                    "Content-Type",
+                    "application/json"
+                )
+                .setBody(mockJson)
+        )
+        val result = service.deleteGame(
+            token = "Bearer token",
+            id = "1"
+        )
+        assertEquals(
+            "deleted",
+            result["status"]
+        )
+        val request = server.takeRequest()
+        assertEquals(
+            "DELETE",
+            request.method
+        )
+        assertEquals(
+            "/users/games/1",
+            request.path
+        )
+        assertEquals(
+            "Bearer token",
+            request.getHeader("Authorization")
+        )
     }
 }
