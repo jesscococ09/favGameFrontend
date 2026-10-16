@@ -16,13 +16,23 @@ class FavGameRoutesTest {
     }
 
     @Test
+    fun viewAllGamesRoute_hasExpectedValue() {
+        assertEquals("view_all_games", FavGameRoutes.VIEW_ALL_GAMES)
+    }
+
+    @Test
+    fun recommendedGamesRoute_hasExpectedValue() {
+        assertEquals("recommended_games", FavGameRoutes.RECOMMENDED_GAMES)
+    }
+
+    @Test
     fun gameDetailsRoute_hasExpectedValue() {
         assertEquals("game_details", FavGameRoutes.GAME_DETAILS)
     }
 
     @Test
-    fun profileRoute_hasExpectedValue() {
-        assertEquals("profile", FavGameRoutes.PROFILE)
+    fun settingsRoute_hasExpectedValue() {
+        assertEquals("settings", FavGameRoutes.SETTINGS)
     }
 
     @Test

@@ -1,48 +1,43 @@
 package com.example.cst438_project2.ui.screens
 
-
-
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 
-// One game shown in the list
 data class Game(
-    val id: Int,
+    val id: String,
     val title: String,
     val imageUrl: String,
-    val updates: Int = 0,  // number shown on the badge
-
-    // Optional details for the popup.
-    // These are temporary UI defaults until real game data is connected.
+    val updates: Int = 0,
     val description: String = "No description available yet.",
     val platform: String = "Not specified",
     val genre: String = "Not specified",
@@ -50,45 +45,55 @@ data class Game(
     val comment: String = "No comment yet."
 )
 
-// Test data until the API is connected
-val sampleGames = listOf(
-    Game(1, "Minecraft", "https://example.com/minecraft.jpg", updates = 3),
-    Game(2, "Elden Ring", "https://example.com/elden-ring.jpg", updates = 1),
-    Game(3, "Stardew Valley", "https://example.com/stardew.jpg"),
-    Game(4, "Hollow Knight", "https://example.com/hollow-knight.jpg"),
-    Game(5, "Celeste", "https://example.com/celeste.jpg")
-)
-
-
-
 private val ScreenBg = Color(0xFF121214)
 private val CardBg = Color(0xFF1C1C20)
 private val ImagePlaceholder = Color(0xFF2C2C2A)
-private val BadgeColor = Color(0xFF7B83EB)
+private val LinkPurple = Color(0xFF9A72C4)
+private val SubmitBlue = Color(0xFF4E82D9)
+private val DeleteRed = Color(0xFFE05252)
 
 @Composable
 fun GameListScreen(
     games: List<Game>,
+    displayName: String,
     onGameClick: (Game) -> Unit,
     modifier: Modifier = Modifier,
-    onProfileClick: () -> Unit = { },
-    onAddClick: () -> Unit = { }
+    onProfileClick: () -> Unit = {},
+    onAddClick: () -> Unit = {},
+    onViewAllClick: () -> Unit = {},
+    onRecommendedClick: () -> Unit = {},
+    onDeleteGames: (Set<String>) -> Unit = {},
+    profilePhotoUrl: String? = null
 ) {
-    // What the user typed in the search box
-    var searchText by remember { mutableStateOf("") }
-    // Only show games whose title matches the search
-    val shownGames = games.filter { it.title.contains(searchText, ignoreCase = true) }
+    val shownGames = games.take(4)
+
+    var deleteMode by remember {
+        mutableStateOf(false)
+    }
+
+    var selectedGameIds by remember {
+        mutableStateOf<Set<String>>(emptySet())
+    }
+
+    var showDeleteConfirmation by remember {
+        mutableStateOf(false)
+    }
 
     Column(
-        modifier = modifier.background(ScreenBg),
+        modifier = modifier
+            .fillMaxSize()
+            .background(ScreenBg),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Search bar, plus button, and profile circle (stays at the top, doesn't scroll)
-        TopBar(
-            searchText = searchText,
-            onSearchChange = { searchText = it },
+        Spacer(
+            modifier = Modifier.height(24.dp)
+        )
+
+        HomeTopBar(
+            displayName = displayName,
             onProfileClick = onProfileClick,
-            onAddClick = onAddClick
+            onAddClick = onAddClick,
+            profilePhotoUrl = profilePhotoUrl
         )
 
         LazyColumn(
@@ -96,69 +101,280 @@ fun GameListScreen(
                 .fillMaxWidth()
                 .weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = 16.dp),
+            contentPadding = PaddingValues(
+                top = 16.dp,
+                bottom = 24.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(
-                    text = "Games (${shownGames.size})",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    modifier = Modifier.fillMaxWidth(0.9f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "My Games",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (deleteMode) {
+                        Spacer(
+                            modifier = Modifier.width(8.dp)
+                        )
+
+                        TextButton(
+                            onClick = {
+                                showDeleteConfirmation = true
+                            },
+                            enabled = selectedGameIds.isNotEmpty(),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = SubmitBlue,
+                                disabledContentColor = Color.Gray
+                            )
+                        ) {
+                            Text(
+                                text = "Submit",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    IconButton(
+                        onClick = {
+                            deleteMode = !deleteMode
+
+                            if (!deleteMode) {
+                                selectedGameIds = emptySet()
+                            }
+                        },
+                        enabled = shownGames.isNotEmpty()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = if (deleteMode) {
+                                "Cancel game deletion"
+                            } else {
+                                "Delete games"
+                            },
+                            tint = if (shownGames.isEmpty()) {
+                                Color.Gray
+                            } else {
+                                DeleteRed
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (shownGames.isEmpty()) {
+                item {
+                    Text(
+                        text = "You haven't added any games yet",
+                        color = Color.Gray,
+                        fontSize = 15.sp,
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .padding(vertical = 24.dp)
+                    )
+                }
+            } else {
+                items(
+                    items = shownGames,
+                    key = { it.id }
+                ) { game ->
+                    val isSelected =
+                        game.id in selectedGameIds
+
+                    GameCard(
+                        game = game,
+                        selectionMode = deleteMode,
+                        isSelected = isSelected,
+
+                        onSelectionChange = { selected ->
+                            selectedGameIds =
+                                if (selected) {
+                                    selectedGameIds + game.id
+                                } else {
+                                    selectedGameIds - game.id
+                                }
+                        },
+
+                        onClick = {
+                            if (deleteMode) {
+                                selectedGameIds =
+                                    if (isSelected) {
+                                        selectedGameIds - game.id
+                                    } else {
+                                        selectedGameIds + game.id
+                                    }
+                            } else {
+                                onGameClick(game)
+                            }
+                        }
+                    )
+                }
+            }
+
+            item {
+                HorizontalDivider(
+                    color = Color(0xFF2C2C30),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(top = 8.dp)
                 )
             }
-            items(shownGames, key = { it.id }) { game ->
-                GameCard(game = game, onClick = { onGameClick(game) })
+
+            if (!deleteMode) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .clickable(onClick = onViewAllClick)
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "View All Games",
+                            color = LinkPurple,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable(
+                            enabled = !deleteMode,
+                            onClick = onRecommendedClick
+                        )
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recommended Games",
+                        color = if (deleteMode) {
+                            Color.Gray
+                        } else {
+                            LinkPurple
+                        },
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     }
-}
 
-@Composable
-fun TopBar(
-    searchText: String,
-    onSearchChange: (String) -> Unit,
-    onProfileClick: () -> Unit,
-    onAddClick: () -> Unit,
-    profilePhotoUrl: String? = null   // set this later once photo upload works
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(0.9f)   // same width as the cards so the edges line up
-            .padding(top = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        TextField(
-            value = searchText,
-            onValueChange = onSearchChange,
-            placeholder = { Text("Search games") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true,
-            shape = RoundedCornerShape(24.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = CardBg,
-                unfocusedContainerColor = CardBg,
-                focusedIndicatorColor = Color.Transparent,   // hides the underline
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White,
-                focusedPlaceholderColor = Color.Gray,
-                unfocusedPlaceholderColor = Color.Gray,
-                focusedLeadingIconColor = Color.LightGray,
-                unfocusedLeadingIconColor = Color.LightGray
-            ),
-            modifier = Modifier.weight(1f)   // search box takes up the leftover space
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmation = false
+            },
+            title = {
+                Text("Delete Selected Games?")
+            },
+            text = {
+                Text(
+                    text = if (selectedGameIds.size == 1) {
+                        "Are you sure you want to delete the selected game?"
+                    } else {
+                        "Are you sure you want to delete " +
+                                "${selectedGameIds.size} selected games?"
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteGames(selectedGameIds)
+
+                        showDeleteConfirmation = false
+                        selectedGameIds = emptySet()
+                        deleteMode = false
+                    }
+                ) {
+                    Text(
+                        text = "Yes",
+                        color = DeleteRed,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                    }
+                ) {
+                    Text("No")
+                }
+            },
+            containerColor = CardBg,
+            titleContentColor = Color.White,
+            textContentColor = Color.LightGray
         )
-        AddButton(onClick = onAddClick)
-        ProfileCircle(photoUrl = profilePhotoUrl, onClick = onProfileClick)
     }
 }
 
-// Circle with a plus sign
 @Composable
-fun AddButton(onClick: () -> Unit) {
+fun HomeTopBar(
+    displayName: String,
+    onProfileClick: () -> Unit,
+    onAddClick: () -> Unit,
+    profilePhotoUrl: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .padding(
+                top = 20.dp,
+                bottom = 8.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (displayName.isBlank()) {
+                "Welcome!"
+            } else {
+                "Welcome, $displayName!"
+            },
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        AddButton(
+            onClick = onAddClick
+        )
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
+        ProfileCircle(
+            photoUrl = profilePhotoUrl,
+            onClick = onProfileClick
+        )
+    }
+}
+
+@Composable
+fun AddButton(
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(44.dp)
@@ -168,31 +384,39 @@ fun AddButton(onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            Icons.Filled.Add,
-            contentDescription = "Add",
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Add game",
             tint = Color.White,
             modifier = Modifier.size(24.dp)
         )
     }
 }
 
-// Empty circle for now; shows the user's photo once photoUrl is set
 @Composable
-fun ProfileCircle(photoUrl: String?, onClick: () -> Unit) {
+fun ProfileCircle(
+    photoUrl: String?,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
             .background(ImagePlaceholder)
-            .border(1.dp, Color.Gray, CircleShape)   // outline so the empty circle is visible
+            .border(
+                width = 1.dp,
+                color = Color.Gray,
+                shape = CircleShape
+            )
             .clickable(onClick = onClick)
-            .semantics { contentDescription = "Profile" }
+            .semantics {
+                contentDescription = "Profile"
+            }
     ) {
-        if (photoUrl != null) {
+        if (!photoUrl.isNullOrBlank()) {
             AsyncImage(
                 model = photoUrl,
                 contentDescription = "Profile photo",
-                contentScale = ContentScale.Crop,   // fills the circle without stretching
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -200,60 +424,142 @@ fun ProfileCircle(photoUrl: String?, onClick: () -> Unit) {
 }
 
 @Composable
-fun GameCard(game: Game, onClick: () -> Unit) {
+fun GameCard(
+    game: Game,
+    selectionMode: Boolean,
+    isSelected: Boolean,
+    onSelectionChange: (Boolean) -> Unit,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .fillMaxWidth(0.9f)   // card width: 90% of the screen
+            .fillMaxWidth(0.9f)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg)
+        colors = CardDefaults.cardColors(
+            containerColor = CardBg
+        )
     ) {
-        // Image across the top of the card
-        Box {
-            AsyncImage(
-                model = game.imageUrl,
-                contentDescription = game.title,
-                contentScale = ContentScale.Crop,
-                placeholder = ColorPainter(ImagePlaceholder),  // shown while loading
-                error = ColorPainter(ImagePlaceholder),        // shown if the URL fails
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)   // image height
-            )
+        AsyncImage(
+            model = game.imageUrl,
+            contentDescription = game.title,
+            contentScale = ContentScale.Crop,
+            placeholder = ColorPainter(ImagePlaceholder),
+            error = ColorPainter(ImagePlaceholder),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+        )
 
-
-        }
-
-        // Title and badge under the image
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 14.dp, end = 28.dp, bottom = 14.dp),
+                .padding(
+                    start = 16.dp,
+                    top = 14.dp,
+                    end = 8.dp,
+                    bottom = 14.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = game.title,
-                color = Color.White,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Medium,
+            Column(
                 modifier = Modifier.weight(1f)
-            )
-            // icon button will open game options menu later
-            IconButton(onClick = {  }) {
-                Icon(
-                    Icons.Filled.MoreVert,
-                    contentDescription = "Game options",
-                    tint = Color.LightGray
+            ) {
+                Text(
+                    text = game.title,
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
+
+                Text(
+                    text = if (game.rating in 1..10) {
+                        "Rating: ${game.rating}/10"
+                    } else {
+                        "Not rated"
+                    },
+                    color = Color.LightGray,
+                    fontSize = 14.sp
+                )
+            }
+
+            if (selectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = onSelectionChange,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = SubmitBlue,
+                        uncheckedColor = Color.LightGray,
+                        checkmarkColor = Color.White
+                    )
                 )
             }
         }
     }
 }
 
-
-// Lets you see the screen in Android Studio without running the app
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    backgroundColor = 0xFF121214
+)
 @Composable
 fun GameListScreenPreview() {
-    GameListScreen(games = sampleGames, onGameClick = { })
+    val previewGames = listOf(
+        Game(
+            id = "preview-1",
+            title = "Minecraft",
+            imageUrl = "",
+            description = "Preview description",
+            platform = "PC",
+            genre = "Sandbox",
+            rating = 9,
+            comment = "Preview comment"
+        ),
+        Game(
+            id = "preview-2",
+            title = "Elden Ring",
+            imageUrl = "",
+            description = "Preview description",
+            platform = "PC",
+            genre = "RPG",
+            rating = 10,
+            comment = "Preview comment"
+        ),
+        Game(
+            id = "preview-3",
+            title = "Stardew Valley",
+            imageUrl = "",
+            description = "Preview description",
+            platform = "PC",
+            genre = "Simulation",
+            rating = 8,
+            comment = "Preview comment"
+        ),
+        Game(
+            id = "preview-4",
+            title = "Hollow Knight",
+            imageUrl = "",
+            description = "Preview description",
+            platform = "PC",
+            genre = "Metroidvania",
+            rating = 9,
+            comment = "Preview comment"
+        )
+    )
+
+    GameListScreen(
+        games = previewGames,
+        displayName = "Preview User",
+        onGameClick = {},
+        onProfileClick = {},
+        onAddClick = {},
+        onViewAllClick = {},
+        onRecommendedClick = {},
+        onDeleteGames = {},
+        profilePhotoUrl = null
+    )
 }
