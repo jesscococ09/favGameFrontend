@@ -1,6 +1,6 @@
 package com.example.cst438_project2
 
-import androidx.compose.ui.test.assertHasClickAction
+
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -20,10 +20,12 @@ class ViewAllGamesScreenTest {
     val composeTestRule = createComposeRule()
 
     // Small helper so each test only fills in the fields it cares about
-    private fun game(name: String, genre: String) =
-        NewGame(name, null, "", "PC", genre, 0, "")
+    private fun game(name: String, genre: String, platform: String = "PC") =
+        NewGame(name, null, "", platform, genre, 0, "")
+
 
     // Shows the View All Games screen; the list and click handlers can be swapped per test
+
     private fun showScreen(
         games: List<NewGame> = emptyList(),
         onBackClick: () -> Unit = { },
@@ -39,24 +41,78 @@ class ViewAllGamesScreenTest {
     }
 
     @Test
-    fun showsTitleBackAndSortButtons() {
+    fun showsTitleBackAndFilterButtons() {
         showScreen()
 
         composeTestRule.onNodeWithText("All Games").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Back").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Sort").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Filter").assertIsDisplayed()
     }
 
     @Test
-    fun sortButtonIsTappable() {
+    fun filterPanelIsHiddenUntilFilterIsTapped() {
         showScreen(games = listOf(game("Halo", "Shooter")))
 
-        // No sorting yet, but the button should be clickable and not crash when tapped
-        composeTestRule.onNodeWithContentDescription("Sort")
-            .assertHasClickAction()
-            .performClick()
+        // Hidden at first
+        composeTestRule.onNodeWithContentDescription("Genre filter").assertDoesNotExist()
 
-        composeTestRule.onNodeWithText("Halo").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+
+        // All four filters show up
+        composeTestRule.onNodeWithContentDescription("Genre filter").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Platform filter").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Rating filter").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Comment contains…").assertIsDisplayed()
+    }
+
+    @Test
+    fun pickingPlatformFiltersTheList() {
+        showScreen(
+            games = listOf(
+                game("Halo", "Shooter", platform = "PC"),
+                game("Celeste", "Platformer", platform = "Nintendo Switch")
+            )
+        )
+
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+        composeTestRule.onNodeWithContentDescription("Platform filter").performClick()
+        composeTestRule.onNodeWithText("Nintendo Switch").performClick()
+
+        // Only the Switch game is left, and the count shows "1 of 2"
+        composeTestRule.onNodeWithText("Celeste").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Halo").assertDoesNotExist()
+        composeTestRule.onNodeWithText("1 of 2 games").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsMessageWhenNothingMatches() {
+        showScreen(games = listOf(game("Halo", "Shooter", platform = "PC")))
+
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+        composeTestRule.onNodeWithContentDescription("Platform filter").performClick()
+        composeTestRule.onNodeWithText("Mobile").performClick()
+
+        composeTestRule.onNodeWithText("No games match your filters").assertIsDisplayed()
+    }
+
+    @Test
+    fun clearFiltersShowsEverythingAgain() {
+        showScreen(
+            games = listOf(
+                game("Halo", "Shooter", platform = "PC"),
+                game("Celeste", "Platformer", platform = "Nintendo Switch")
+            )
+        )
+
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+        composeTestRule.onNodeWithContentDescription("Platform filter").performClick()
+        composeTestRule.onNodeWithText("PC").performClick()
+        composeTestRule.onNodeWithText("Celeste").assertDoesNotExist()
+
+        composeTestRule.onNodeWithText("Clear filters").performClick()
+
+        composeTestRule.onNodeWithText("Celeste").assertIsDisplayed()
+        composeTestRule.onNodeWithText("2 games").assertIsDisplayed()
     }
 
     @Test
