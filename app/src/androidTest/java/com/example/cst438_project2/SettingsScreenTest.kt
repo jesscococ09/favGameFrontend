@@ -3,13 +3,13 @@ package com.example.cst438_project2.ui.screens
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isNotEnabled
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,11 +30,17 @@ class SettingsScreenTest {
         }
 
         composeTestRule
-            .onAllNodesWithText("Delete User Comment")
+            .onAllNodesWithText(
+                text = "Delete User Comment",
+                substring = false
+            )
             .assertCountEquals(0)
 
         composeTestRule
-            .onAllNodesWithText("Delete User")
+            .onAllNodesWithText(
+                text = "Delete User",
+                substring = false
+            )
             .assertCountEquals(0)
     }
 
@@ -49,12 +55,22 @@ class SettingsScreenTest {
         }
 
         composeTestRule
-            .onNode(hasText("Delete User Comment") and hasClickAction())
+            .onNode(
+                hasText(
+                    text = "Delete User Comment",
+                    substring = false
+                ) and hasClickAction()
+            )
             .performScrollTo()
             .assertIsDisplayed()
 
         composeTestRule
-            .onNode(hasText("Delete User") and hasClickAction())
+            .onNode(
+                hasText(
+                    text = "Delete User",
+                    substring = false
+                ) and hasClickAction()
+            )
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -70,11 +86,25 @@ class SettingsScreenTest {
         }
 
         composeTestRule
-            .onNode(hasText("Delete User Comment") and hasClickAction())
+            .onNode(
+                hasText(
+                    text = "Delete User Comment",
+                    substring = false
+                ) and isNotEnabled()
+            )
+            .performScrollTo()
+            .assertIsDisplayed()
             .assertIsNotEnabled()
 
         composeTestRule
-            .onNode(hasText("Delete User") and hasClickAction())
+            .onNode(
+                hasText(
+                    text = "Delete User",
+                    substring = false
+                ) and isNotEnabled()
+            )
+            .performScrollTo()
+            .assertIsDisplayed()
             .assertIsNotEnabled()
     }
 
@@ -85,13 +115,22 @@ class SettingsScreenTest {
         composeTestRule.setContent {
             SettingsScreen(
                 onBackClick = {},
-                onLogoutClick = { logoutCalled = true },
+                onLogoutClick = {
+                    logoutCalled = true
+                },
                 isAdmin = false
             )
         }
 
         composeTestRule
-            .onNodeWithText("Log Out")
+            .onNode(
+                hasText(
+                    text = "Log Out",
+                    substring = false
+                ) and hasClickAction()
+            )
+            .performScrollTo()
+            .assertIsDisplayed()
             .performClick()
 
         assertTrue(logoutCalled)

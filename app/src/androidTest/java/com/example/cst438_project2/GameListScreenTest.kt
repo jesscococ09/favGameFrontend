@@ -1,12 +1,10 @@
 package com.example.cst438_project2
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import com.example.cst438_project2.ui.screens.Game
 import com.example.cst438_project2.ui.screens.GameListScreen
 import org.junit.Assert.assertEquals
@@ -16,102 +14,142 @@ import org.junit.Test
 
 class GameListScreenTest {
 
-    // Opens a composable on the emulator so the test can interact with it
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // Small test list so every card fits on screen
     private val testGames = listOf(
-        Game(1, "Minecraft", "https://example.com/minecraft.jpg"),
-        Game(2, "Elden Ring", "https://example.com/elden-ring.jpg"),
-        Game(3, "Celeste", "https://example.com/celeste.jpg")
+        Game(
+            id = "1",
+            title = "Minecraft",
+            imageUrl = "",
+            rating = 9
+        ),
+        Game(
+            id = "2",
+            title = "Elden Ring",
+            imageUrl = "",
+            rating = 10
+        ),
+        Game(
+            id = "3",
+            title = "Celeste",
+            imageUrl = "",
+            rating = 8
+        )
     )
 
     @Test
-    fun showsGameCountAndTitles() {
+    fun showsGameTitles() {
         composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { })
+            GameListScreen(
+                games = testGames,
+                displayName = "Test User",
+                onGameClick = {}
+            )
         }
 
-        composeTestRule.onNodeWithText("Games (3)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Minecraft").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Elden Ring").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("My Games")
+            .assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithText("Minecraft")
+            .assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithText("Elden Ring")
+            .assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithText("Celeste")
+            .assertIsDisplayed()
     }
 
     @Test
-    fun showsSearchBarAddButtonAndProfileCircle() {
+    fun showsWelcomeAddButtonAndProfileCircle() {
         composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { })
+            GameListScreen(
+                games = testGames,
+                displayName = "Test User",
+                onGameClick = {}
+            )
         }
 
-        composeTestRule.onNodeWithText("Search games").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Add").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Profile").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("Welcome, Test User!")
+            .assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithContentDescription("Add game")
+            .assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithContentDescription("Profile")
+            .assertIsDisplayed()
     }
 
     @Test
-    fun searchFiltersGames() {
+    fun showsEmptyMessageWhenNoGamesExist() {
         composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { })
+            GameListScreen(
+                games = emptyList(),
+                displayName = "Test User",
+                onGameClick = {}
+            )
         }
 
-        // Type into the search bar
-        composeTestRule.onNode(hasSetTextAction()).performTextInput("mine")
-
-        composeTestRule.onNodeWithText("Games (1)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Minecraft").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Elden Ring").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Celeste").assertDoesNotExist()
-    }
-
-    @Test
-    fun searchIgnoresUpperAndLowerCase() {
-        composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { })
-        }
-
-        composeTestRule.onNode(hasSetTextAction()).performTextInput("ELDEN")
-
-        composeTestRule.onNodeWithText("Elden Ring").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Games (1)").assertIsDisplayed()
-    }
-
-    @Test
-    fun searchWithNoMatchesShowsZero() {
-        composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { })
-        }
-
-        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz")
-
-        composeTestRule.onNodeWithText("Games (0)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Minecraft").assertDoesNotExist()
+        composeTestRule
+            .onNodeWithText("You haven't added any games yet")
+            .assertIsDisplayed()
     }
 
     @Test
     fun tappingGameSendsThatGame() {
         var clickedGame: Game? = null
+
         composeTestRule.setContent {
-            GameListScreen(games = testGames, onGameClick = { clickedGame = it })
+            GameListScreen(
+                games = testGames,
+                displayName = "Test User",
+                onGameClick = {
+                    clickedGame = it
+                }
+            )
         }
 
-        composeTestRule.onNodeWithText("Elden Ring").performClick()
+        composeTestRule
+            .onNodeWithText("Elden Ring")
+            .performClick()
 
-        assertEquals("Elden Ring", clickedGame?.title)
+        assertEquals(
+            "Elden Ring",
+            clickedGame?.title
+        )
+
+        assertEquals(
+            "2",
+            clickedGame?.id
+        )
     }
 
     @Test
     fun tappingAddButtonCallsOnAddClick() {
         var addClicked = false
+
         composeTestRule.setContent {
             GameListScreen(
                 games = testGames,
-                onGameClick = { },
-                onAddClick = { addClicked = true }
+                displayName = "Test User",
+                onGameClick = {},
+                onAddClick = {
+                    addClicked = true
+                }
             )
         }
 
-        composeTestRule.onNodeWithContentDescription("Add").performClick()
+        composeTestRule
+            .onNodeWithContentDescription("Add game")
+            .performClick()
 
         assertTrue(addClicked)
     }
@@ -119,16 +157,20 @@ class GameListScreenTest {
     @Test
     fun tappingProfileCircleCallsOnProfileClick() {
         var profileClicked = false
+
         composeTestRule.setContent {
             GameListScreen(
                 games = testGames,
-                onGameClick = { },
-                onProfileClick = { profileClicked = true }
+                displayName = "Test User",
+                onGameClick = {},
+                onProfileClick = {
+                    profileClicked = true
+                }
             )
         }
-
-        composeTestRule.onNodeWithContentDescription("Profile").performClick()
-
+        composeTestRule
+            .onNodeWithContentDescription("Profile")
+            .performClick()
         assertTrue(profileClicked)
     }
 }
