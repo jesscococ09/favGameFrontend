@@ -34,19 +34,19 @@ interface ApiService {
     @POST("users/games")
     suspend fun addGame(
         @Header("Authorization") token: String,
-        @Body body: Map<String, Any>
+        @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Api
     @PUT("users/games/{id}")
     suspend fun replaceGame(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body body: Map<String, Any>
+        @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Api
     @PATCH("users/games/{id}")
     suspend fun updateGame(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body body: Map<String, Any>
+        @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Api
     @DELETE("users/games/{id}")
     suspend fun deleteGame(
@@ -57,6 +57,6 @@ interface ApiService {
     suspend fun addComment(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body body: Map<String, Any>
+        @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Api
 }

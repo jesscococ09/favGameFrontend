@@ -15,13 +15,13 @@ interface RecommendedGamesService {
     suspend fun listRecommendations(
         @Header("Authorization")
         token: String
-    ):List<RecommendedGame>
+    ): List<RecommendedGame>
     @POST("recommendations")
     suspend fun createRecommendation(
         @Header("Authorization")
         token: String,
         @Body
-        body: Map<String, Any>
+        body: Map<String, @JvmSuppressWildcards Any>
     ): RecommendedGame
     @PATCH("recommendations/{id}")
     suspend fun updateRecommendation(
@@ -30,7 +30,7 @@ interface RecommendedGamesService {
         @Path("id")
         id: String,
         @Body
-        body: Map<String, Any>
+        body: Map<String, @JvmSuppressWildcards Any>
     ): RecommendedGame
     @PUT("recommendations/{id}")
     suspend fun replaceRecommendation(
@@ -39,7 +39,7 @@ interface RecommendedGamesService {
         @Path("id")
         id: String,
         @Body
-        body: Map<String, Any>
+        body: Map<String, @JvmSuppressWildcards Any>
     ): RecommendedGame
     @DELETE("recommendations/{id}")
     suspend fun deleteRecommendation(
@@ -47,5 +47,5 @@ interface RecommendedGamesService {
         token: String,
         @Path("id")
         id: String
-    ):Map<String, String>
+    ): Map<String, String>
 }
