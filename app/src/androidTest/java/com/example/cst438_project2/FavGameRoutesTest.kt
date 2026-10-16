@@ -39,4 +39,11 @@ class FavGameRoutesTest {
     fun addGameRoute_hasExpectedValue() {
         assertEquals("add_game", FavGameRoutes.ADD_GAME)
     }
+    @Test
+    fun changeAllAttributesRoute_hasExpectedValue() {
+        assertEquals(
+            "change_all_attributes",
+            FavGameRoutes.CHANGE_ALL_ATTRIBUTES
+        )
+    }
 }

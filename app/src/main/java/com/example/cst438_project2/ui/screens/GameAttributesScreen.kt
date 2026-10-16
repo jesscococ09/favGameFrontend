@@ -1,4 +1,3 @@
-
 package com.example.cst438_project2.ui.screens
 
 import androidx.compose.foundation.background
@@ -7,7 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,8 +23,35 @@ private val DetailsPurple = Color(0xFF5A287D)
 @Composable
 fun GameDetailsPopup(
     game: Game,
+    canEdit: Boolean = true,
+    onChangeRating: (Int) -> Unit = {},
+    onChangeComment: (String) -> Unit = {},
+    onChangeAll: () -> Unit = {},
     onClose: () -> Unit
 ) {
+    var showRatingDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var showCommentDialog by remember {
+        mutableStateOf(false)
+    }
+
+    // Keeps the rating and comment visibly updated while the popup stays open.
+    var displayedRating by remember(game.id) {
+        mutableIntStateOf(game.rating)
+    }
+
+    var displayedComment by remember(game.id) {
+        mutableStateOf(game.comment)
+    }
+
+    // Keeps the local values synchronized after the backend finishes updating.
+    LaunchedEffect(game.rating, game.comment) {
+        displayedRating = game.rating
+        displayedComment = game.comment
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -55,7 +81,10 @@ fun GameDetailsPopup(
                 )
 
                 TextButton(onClick = onClose) {
-                    Text("Close", color = Color.White)
+                    Text(
+                        text = "Close",
+                        color = Color.White
+                    )
                 }
             }
 
@@ -80,24 +109,64 @@ fun GameDetailsPopup(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No cover image", color = Color.White)
+                    Text(
+                        text = "No cover image",
+                        color = Color.White
+                    )
                 }
             }
 
-            DetailItem("Description", game.description)
-            DetailItem("Platform", game.platform)
-            DetailItem("Genre", game.genre)
+            DetailItem(
+                label = "Description",
+                value = game.description
+            )
 
             DetailItem(
-                "Rating",
-                if (game.rating in 1..10) {
-                    "${game.rating}/10"
+                label = "Platform",
+                value = game.platform
+            )
+
+            DetailItem(
+                label = "Genre",
+                value = game.genre
+            )
+
+            EditableDetailItem(
+                label = "Rating",
+                value = if (displayedRating in 1..10) {
+                    "$displayedRating/10"
                 } else {
                     "Not rated"
+                },
+                canEdit = canEdit,
+                onChangeClick = {
+                    showRatingDialog = true
                 }
             )
 
-            DetailItem("Comment", game.comment)
+            EditableDetailItem(
+                label = "Comment",
+                value = displayedComment.ifBlank {
+                    "No comment"
+                },
+                canEdit = canEdit,
+                onChangeClick = {
+                    showCommentDialog = true
+                }
+            )
+
+            // Personal games can be edited by their owner, recommended games only by admin.
+            if (canEdit) {
+                Button(
+                    onClick = onChangeAll,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DetailsPurple
+                    )
+                ) {
+                    Text("Change All Attributes")
+                }
+            }
 
             Button(
                 onClick = onClose,
@@ -110,6 +179,38 @@ fun GameDetailsPopup(
             }
         }
     }
+
+    // Small popup used to change only the rating.
+    if (showRatingDialog) {
+        ChangeRatingDialog(
+            currentRating = displayedRating,
+            onDismiss = {
+                showRatingDialog = false
+            },
+            onSave = { newRating ->
+                // Update the visible value immediately, then send the PATCH.
+                displayedRating = newRating
+                onChangeRating(newRating)
+                showRatingDialog = false
+            }
+        )
+    }
+
+    // Small popup used to change only the comment.
+    if (showCommentDialog) {
+        ChangeCommentDialog(
+            currentComment = displayedComment,
+            onDismiss = {
+                showCommentDialog = false
+            },
+            onSave = { newComment ->
+                // Update the visible value immediately, then send the PATCH.
+                displayedComment = newComment
+                onChangeComment(newComment)
+                showCommentDialog = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -117,7 +218,9 @@ private fun DetailItem(
     label: String,
     value: String
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = label,
             color = Color.LightGray,
@@ -131,4 +234,180 @@ private fun DetailItem(
             fontSize = 16.sp
         )
     }
+}
+
+@Composable
+private fun EditableDetailItem(
+    label: String,
+    value: String,
+    canEdit: Boolean,
+    onChangeClick: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = Color.LightGray,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+
+            if (canEdit) {
+                TextButton(
+                    onClick = onChangeClick,
+                    contentPadding = PaddingValues(
+                        horizontal = 8.dp,
+                        vertical = 0.dp
+                    )
+                ) {
+                    Text(
+                        text = "Change",
+                        color = DetailsPurple
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = value,
+            color = Color.White,
+            fontSize = 16.sp
+        )
+    }
+}
+
+// Lets the user choose a new rating from the same 1 to 10 range used by Add Game.
+@Composable
+private fun ChangeRatingDialog(
+    currentRating: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit
+) {
+    var selectedRating by remember(currentRating) {
+        mutableIntStateOf(
+            if (currentRating in 1..10) {
+                currentRating
+            } else {
+                1
+            }
+        )
+    }
+
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Change Rating")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Select a rating from 1 to 10.")
+
+                Box {
+                    OutlinedButton(
+                        onClick = {
+                            expanded = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("$selectedRating/10")
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = {
+                            expanded = false
+                        }
+                    ) {
+                        (1..10).forEach { rating ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text("$rating/10")
+                                },
+                                onClick = {
+                                    selectedRating = rating
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(selectedRating)
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// Lets the user replace the current comment.
+@Composable
+private fun ChangeCommentDialog(
+    currentComment: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var comment by remember(currentComment) {
+        mutableStateOf(currentComment)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Change Comment")
+        },
+        text = {
+            OutlinedTextField(
+                value = comment,
+                onValueChange = {
+                    comment = it
+                },
+                label = {
+                    Text("Comment")
+                },
+                minLines = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(comment)
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }

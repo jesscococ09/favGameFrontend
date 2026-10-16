@@ -8,4 +8,6 @@ object FavGameRoutes {
     const val GAME_DETAILS = "game_details"
     const val SETTINGS = "settings"
     const val ADD_GAME = "add_game"
+
+    const val CHANGE_ALL_ATTRIBUTES = "change_all_attributes"
 }
