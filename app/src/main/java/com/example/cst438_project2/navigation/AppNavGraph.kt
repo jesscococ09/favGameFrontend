@@ -53,6 +53,37 @@ fun AppNavGraph(
         ?.collectAsState()
         ?.value
 
+    val userLoading = userViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val userError = userViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
+
+    val deleteSucceeded = userViewModel
+        ?.deleteSucceeded
+        ?.collectAsState()
+        ?.value ?: false
+
+    val adminUsers = adminViewModel
+        ?.users
+        ?.collectAsState()
+        ?.value
+        .orEmpty()
+
+    val adminLoading = adminViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val adminError = adminViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
+
     val apiGames = apiViewModel
         ?.games
         ?.collectAsState()
@@ -122,8 +153,6 @@ fun AppNavGraph(
     val profilePhotoUrl = user?.iconUrl
     val displayName = user?.displayName.orEmpty()
 
-    @Suppress("UNUSED_VARIABLE")
-    val currentAdminViewModel = adminViewModel
 
     // Decide which screen to show when the graph first opens.
     val startDestination = if (isLoggedIn) {
@@ -460,13 +489,39 @@ fun AppNavGraph(
         }
 
         // Settings / Profile.
+
+        // Settings / Profile.
         composable(FavGameRoutes.SETTINGS) {
             SettingsScreen(
-                // Settings always goes back to Home.
+                adminUsers = adminUsers,
+                adminLoading = adminLoading,
+                adminError = adminError,
+
+                onLoadAdminUsers = {
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.loadUsers(accessToken)
+                    }
+                },
+
+                onDeleteAdminUser = { userId ->
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.deleteUser(accessToken, userId)
+                    }
+                },
+                onSaveIcon = { iconUrl ->
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.updateIcon(token, iconUrl)
+                    }
+                },
                 onBackClick = {
-                    navController.navigate(
-                        FavGameRoutes.GAME_LIST
-                    ) {
+                    navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
                     }
                 },
@@ -474,21 +529,60 @@ fun AppNavGraph(
                 onLogoutClick = {
                     onLogoutClick()
 
-                    // Prevent logged-out users from returning to Home.
-                    navController.navigate(
-                        FavGameRoutes.LOGIN
-                    ) {
+                    navController.navigate(FavGameRoutes.LOGIN) {
                         popUpTo(FavGameRoutes.GAME_LIST) {
                             inclusive = true
                         }
-
                         launchSingleTop = true
                     }
                 },
 
-                isAdmin = isAdmin
+                isAdmin = isAdmin,
+                displayName = displayName,
+                profileImageUrl = profilePhotoUrl,
+                loading = userLoading,
+                error = userError,
+                deleteSucceeded = deleteSucceeded,
+
+                onSaveDisplayName = { newName ->
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.updateDisplayName(
+                            token,
+                            newName
+                        )
+                    }
+                },
+
+                onDeleteAccount = {
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.deleteUser(token)
+                    }
+                },
+
+                onClearError = {
+                    userViewModel?.clearError()
+                },
+
+                onAccountDeleted = {
+                    // Reset the success flag so it cannot trigger again later.
+                    userViewModel?.resetDeleteSucceeded()
+
+                    // Clear the saved token and PKCE verifier.
+                    onLogoutClick()
+
+                    // Return to Login and remove Home from the back stack.
+                    navController.navigate(FavGameRoutes.LOGIN) {
+                        popUpTo(FavGameRoutes.GAME_LIST) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
+
 
         // AddGame can be used for personal or recommended games.
         composable(

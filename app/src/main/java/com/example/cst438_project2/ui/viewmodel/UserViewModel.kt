@@ -17,6 +17,8 @@ class UserViewModel(
     val loading: StateFlow<Boolean> = _loading
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+    private val _deleteSucceeded = MutableStateFlow(false)
+    val deleteSucceeded: StateFlow<Boolean> = _deleteSucceeded
     fun loadUser(token: String) {
         viewModelScope.launch {
             try {
@@ -71,21 +73,31 @@ class UserViewModel(
             }
         }
     }
+
     fun deleteUser(token: String) {
         viewModelScope.launch {
             try {
                 _loading.value = true
                 _error.value = null
+                _deleteSucceeded.value = false
                 repository.deleteUser(token)
+                // Only report success after the backend confirms deletion.
                 _user.value = null
+                _deleteSucceeded.value = true
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.message ?: "Unable to delete account."
+                _deleteSucceeded.value = false
             } finally {
                 _loading.value = false
             }
         }
     }
+
     fun clearError() {
         _error.value = null
+    }
+
+    fun resetDeleteSucceeded() {
+        _deleteSucceeded.value = false
     }
 }
