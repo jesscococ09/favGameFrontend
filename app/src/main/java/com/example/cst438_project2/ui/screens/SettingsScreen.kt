@@ -22,7 +22,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -41,8 +40,6 @@ fun SettingsScreen(
 ) {
     // Temporary UI state. These values are not saved to the backend.
     var username by remember { mutableStateOf("") }
-    var currentPassword by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
     var profileImageUri by remember { mutableStateOf<String?>(null) }
     // Temporary UI state for admin actions.
     var targetUsername by remember { mutableStateOf("") }
@@ -157,32 +154,6 @@ fun SettingsScreen(
                     text = "Save Username",
                     onClick = {
                         // TODO: Connect to the username update API.
-                    }
-                )
-            }
-
-            // Password
-            SettingsSection(title = "Change Password") {
-                SettingsTextField(
-                    value = currentPassword,
-                    onValueChange = { currentPassword = it },
-                    label = "Current Password",
-                    placeholder = "Enter current password",
-                    isPassword = true
-                )
-
-                SettingsTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
-                    label = "New Password",
-                    placeholder = "Enter new password",
-                    isPassword = true
-                )
-
-                SettingsActionButton(
-                    text = "Update Password",
-                    onClick = {
-                        // TODO: Connect to password update logic if supported.
                     }
                 )
             }
@@ -414,8 +385,7 @@ private fun SettingsTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    placeholder: String,
-    isPassword: Boolean = false
+    placeholder: String
 ) {
     OutlinedTextField(
         value = value,
@@ -424,11 +394,6 @@ private fun SettingsTextField(
         label = { Text(label) },
         placeholder = { Text(placeholder) },
         singleLine = true,
-        visualTransformation = if (isPassword) {
-            PasswordVisualTransformation()
-        } else {
-            androidx.compose.ui.text.input.VisualTransformation.None
-        },
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
             unfocusedTextColor = Color.White,
