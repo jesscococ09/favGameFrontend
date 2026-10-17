@@ -27,6 +27,7 @@ import com.example.cst438_project2.ui.screens.LoginScreen
 import com.example.cst438_project2.ui.screens.NewGame
 import com.example.cst438_project2.ui.screens.SettingsScreen
 import com.example.cst438_project2.ui.screens.ViewAllGamesScreen
+import com.example.cst438_project2.ui.screens.RecommendedGamesScreen
 import com.example.cst438_project2.ui.viewmodel.AdminViewModel
 import com.example.cst438_project2.ui.viewmodel.ApiViewModel
 import com.example.cst438_project2.ui.viewmodel.RecommendedGamesViewModel
@@ -63,6 +64,16 @@ fun AppNavGraph(
         ?.collectAsState()
         ?.value
         .orEmpty()
+
+    val recommendedLoading = recommendedGamesViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val recommendedError = recommendedGamesViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
 
     // Convert Api data into the model used by the UI.
     val displayedGames = apiGames.map { apiGame ->
@@ -542,15 +553,36 @@ fun AppNavGraph(
             )
         }
 
-        // TODO: ADD RecommendedGamesScreen
         composable(FavGameRoutes.RECOMMENDED_GAMES) {
-            PlaceholderScreen(
-                title = "Recommended Games",
-                onBack = {
-                    navController.navigate(
-                        FavGameRoutes.GAME_LIST
-                    ) {
+            RecommendedGamesScreen(
+                games = displayedRecommendedGames,
+                isAdmin = isAdmin,
+                loading = recommendedLoading,
+                error = recommendedError,
+                onBackClick = {
+                    navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
+                    }
+                },
+                onGameClick = { game ->
+                    navController.navigate(
+                        "${FavGameRoutes.GAME_DETAILS}/recommended/${game.id}"
+                    )
+                },
+                onDeleteGame = { gameId ->
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        recommendedGamesViewModel
+                            ?.deleteRecommendation(accessToken, gameId)
+                    }
+                },
+                onRetry = {
+                    val accessToken = token
+
+                    if (accessToken != null) {
+                        recommendedGamesViewModel
+                            ?.loadRecommendations(accessToken)
                     }
                 }
             )
