@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
@@ -84,6 +86,26 @@ fun filterGames(games: List<NewGame>, filters: GameFilters): List<NewGame> =
                         game.comment.contains(filters.commentQuery.trim(), ignoreCase = true))
     }
 
+
+/**
+ * Returns the games sorted by title, A to Z.
+ * Uses lowercase so "celeste" doesn't end up after "Zelda".
+ */
+fun sortGamesAZ(games: List<NewGame>): List<NewGame> =
+    games.sortedBy { it.gameName.lowercase() }
+
+/**
+ * Returns only the games whose title contains the search text (ignores case).
+ * Blank search returns every game.
+ */
+
+fun searchGames(games: List<NewGame>, query: String): List<NewGame> =
+    if (query.isBlank()) {
+        games
+    } else {
+        games.filter { it.gameName.contains(query.trim(), ignoreCase = true) }
+    }
+
 /**
  * View All Games screen: every game the user has added with the Add Game screen,
  * shown as a simple list with the title on the left and the genre on the right.
@@ -103,8 +125,18 @@ fun ViewAllGamesScreen(
     var filters by remember { mutableStateOf(GameFilters()) }
     var showFilters by remember { mutableStateOf(false) }
 
-    // Re-filter only when the list or the filters change
-    val shownGames = remember(games, filters) { filterGames(games, filters) }
+    // Whether A–Z sort is chosen (picked in the filter panel)
+    var sortAZ by remember { mutableStateOf(false) }
+
+    // What's typed in the search bar
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Apply the filters, then the search, then sort A–Z if chosen
+    val shownGames = remember(games, filters, searchQuery, sortAZ) {
+        val matches = searchGames(filterGames(games, filters), searchQuery)
+        if (sortAZ) sortGamesAZ(matches) else matches
+    }
+
 
     Column(
         modifier = modifier
@@ -132,21 +164,65 @@ fun ViewAllGamesScreen(
                 fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold
             )
+        }
 
+        // Search bar (searches game titles) with the filter button to its right
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 8.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search games…", color = ViewAllSubtle) },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(Icons.Filled.Search, contentDescription = null, tint = ViewAllSubtle)
+                },
+                trailingIcon = {
+                    // Little X to clear the search, only when something is typed
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Clear search",
+                                tint = ViewAllSubtle
+                            )
+                        }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = ViewAllField,
+                    unfocusedContainerColor = ViewAllField,
+                    focusedBorderColor = ViewAllAccent,
+                    unfocusedBorderColor = ViewAllDivider
+                ),
+                modifier = Modifier.weight(1f)   // takes all the space the filter icon doesn't
+            )
 
-            // Filter button right after the title. Turns purple while any filter is on.
+            // Filter button. Turns purple while any filter or A–Z sort is on.
             IconButton(onClick = { showFilters = !showFilters }) {
                 Icon(
                     imageVector = Icons.Filled.FilterList,
                     contentDescription = "Filter",
-                    tint = if (filters.isActive) ViewAllAccent else ViewAllSubtle,
+                    tint = if (filters.isActive || sortAZ) ViewAllAccent else ViewAllSubtle,
                     modifier = Modifier.size(22.dp)
                 )
             }
         }
 
+
         if (showFilters) {
-            FilterPanel(filters = filters, onFiltersChange = { filters = it })
+            FilterPanel(
+                filters = filters,
+                onFiltersChange = { filters = it },
+                sortAZ = sortAZ,
+                onSortChange = { sortAZ = it }
+            )
         }
 
         if (games.isEmpty()) {
@@ -173,7 +249,7 @@ fun ViewAllGamesScreen(
                     .padding(24.dp)
             ) {
                 Text(
-                    text = "No games match your filters",
+                    text = "No games match your search or filters",
                     color = ViewAllSubtle,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center
@@ -182,8 +258,9 @@ fun ViewAllGamesScreen(
         } else {
             // Count line, e.g. "3 games", or "2 of 5 games" while filtering
             val countText = when {
-                filters.isActive -> "${shownGames.size} of ${games.size} games"
+                filters.isActive || searchQuery.isNotBlank() -> "${shownGames.size} of ${games.size} games"
                 games.size == 1 -> "1 game"
+
                 else -> "${games.size} games"
             }
             Text(
@@ -218,7 +295,9 @@ fun ViewAllGamesScreen(
 @Composable
 private fun FilterPanel(
     filters: GameFilters,
-    onFiltersChange: (GameFilters) -> Unit
+    onFiltersChange: (GameFilters) -> Unit,
+    sortAZ: Boolean,
+    onSortChange: (Boolean) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -243,16 +322,27 @@ private fun FilterPanel(
             )
         }
 
-        FilterDropdown(
-            label = "Rating",
-            // Shown as "7+" so it's clear it means "7 or higher"
-            selected = filters.minRating?.let { "$it+" },
-            options = (1..10).map { "$it+" },
-            onSelect = { choice ->
-                onFiltersChange(filters.copy(minRating = choice?.removeSuffix("+")?.toInt()))
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterDropdown(
+                label = "Rating",
+                // Shown as "7+" so it's clear it means "7 or higher"
+                selected = filters.minRating?.let { "$it+" },
+                options = (1..10).map { "$it+" },
+                onSelect = { choice ->
+                    onFiltersChange(filters.copy(minRating = choice?.removeSuffix("+")?.toInt()))
+                },
+                modifier = Modifier.weight(1f)
+            )
+            // Sort: "Order added" (default) or A–Z. Changes the order, never hides games.
+            FilterDropdown(
+                label = "Sort",
+                selected = if (sortAZ) "A–Z" else null,
+                options = listOf("A–Z"),
+                onSelect = { onSortChange(it == "A–Z") },
+                allLabel = "Order added",
+                modifier = Modifier.weight(1f)
+            )
+        }
 
         OutlinedTextField(
             value = filters.commentQuery,
@@ -289,6 +379,7 @@ private fun FilterDropdown(
     selected: String?,
     options: List<String>,
     onSelect: (String?) -> Unit,
+    allLabel: String = "All",   // name of the "nothing picked" choice
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -305,7 +396,7 @@ private fun FilterDropdown(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "$label: ${selected ?: "All"}",
+                text = "$label: ${selected ?: allLabel}",
                 color = if (selected != null) Color.White else ViewAllSubtle,
                 fontSize = 14.sp,
                 maxLines = 1,
@@ -317,7 +408,7 @@ private fun FilterDropdown(
 
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text("All") },
+                text = { Text(allLabel) },
                 onClick = {
                     onSelect(null)
                     expanded = false
