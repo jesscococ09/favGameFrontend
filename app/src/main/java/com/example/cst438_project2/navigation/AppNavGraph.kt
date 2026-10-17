@@ -19,6 +19,7 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.cst438_project2.ui.screens.AddGameScreen
+import com.example.cst438_project2.ui.screens.ChangeAllAttributesScreen
 import com.example.cst438_project2.ui.screens.Game
 import com.example.cst438_project2.ui.screens.GameDetailsPopup
 import com.example.cst438_project2.ui.screens.GameListScreen
@@ -57,6 +58,12 @@ fun AppNavGraph(
         ?.value
         .orEmpty()
 
+    val recommendedGames = recommendedGamesViewModel
+        ?.recommendations
+        ?.collectAsState()
+        ?.value
+        .orEmpty()
+
     // Convert Api data into the model used by the UI.
     val displayedGames = apiGames.map { apiGame ->
         Game(
@@ -72,6 +79,21 @@ fun AppNavGraph(
         )
     }
 
+    // Convert recommended game data into the model used by the UI.
+    val displayedRecommendedGames = recommendedGames.map { recommendedGame ->
+        Game(
+            id = recommendedGame.id,
+            title = recommendedGame.gameName,
+            imageUrl = recommendedGame.thumbnail,
+            updates = 0,
+            description = recommendedGame.gameDescription,
+            platform = recommendedGame.platform,
+            genre = recommendedGame.genre,
+            rating = recommendedGame.rating,
+            comment = recommendedGame.comment
+        )
+    }
+
     // Temporary until ViewAllGamesScreen keeps the backend UUID.
     val viewAllGames = apiGames.map { apiGame ->
         NewGame(
@@ -84,6 +106,7 @@ fun AppNavGraph(
             comment = apiGame.comment
         )
     }
+
     val isAdmin = user?.isAdmin == true
     val profilePhotoUrl = user?.iconUrl
     val displayName = user?.displayName.orEmpty()
@@ -98,11 +121,16 @@ fun AppNavGraph(
         FavGameRoutes.LOGIN
     }
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
 
         // Login screen.
         composable(FavGameRoutes.LOGIN) {
-            LoginScreen(onLoginClick = onLoginClick)
+            LoginScreen(
+                onLoginClick = onLoginClick
+            )
         }
 
         // Home screen.
@@ -113,7 +141,11 @@ fun AppNavGraph(
                 profilePhotoUrl = profilePhotoUrl,
 
                 onGameClick = { game ->
-                    navController.navigate("${FavGameRoutes.GAME_DETAILS}/${game.id}") },
+                    navController.navigate(
+                        "${FavGameRoutes.GAME_DETAILS}/api/${game.id}"
+                    )
+                },
+
                 onProfileClick = {
                     navController.navigate(
                         FavGameRoutes.SETTINGS
@@ -123,9 +155,15 @@ fun AppNavGraph(
                 },
 
                 onAddClick = {
-                    navController.navigate("${FavGameRoutes.ADD_GAME}/api") },
+                    navController.navigate(
+                        "${FavGameRoutes.ADD_GAME}/api"
+                    )
+                },
+
                 onViewAllClick = {
-                    navController.navigate(FavGameRoutes.VIEW_ALL_GAMES) {
+                    navController.navigate(
+                        FavGameRoutes.VIEW_ALL_GAMES
+                    ) {
                         launchSingleTop = true
                     }
                 },
@@ -141,8 +179,12 @@ fun AppNavGraph(
                 // Delete selected personal games by UUID.
                 onDeleteGames = { selectedIds ->
                     val accessToken = token
+
                     if (accessToken != null) {
-                        apiViewModel?.deleteGames(accessToken, selectedIds)
+                        apiViewModel?.deleteGames(
+                            accessToken,
+                            selectedIds
+                        )
                     }
                 }
             )
@@ -152,6 +194,7 @@ fun AppNavGraph(
         composable(FavGameRoutes.VIEW_ALL_GAMES) {
             ViewAllGamesScreen(
                 games = viewAllGames,
+
                 // View All always goes back to Home.
                 onBackClick = {
                     navController.navigate(
@@ -172,28 +215,120 @@ fun AppNavGraph(
                                 it.rating == selectedGame.rating &&
                                 it.comment == selectedGame.comment
                     }
+
                     if (apiGame != null) {
-                        navController.navigate("${FavGameRoutes.GAME_DETAILS}/${apiGame.id}")
+                        navController.navigate(
+                            "${FavGameRoutes.GAME_DETAILS}/api/${apiGame.id}"
+                        )
                     }
                 }
             )
         }
-        // Game attributes can be opened from multiple screens, so using popBackStack instead of loc
+
+        // Game attributes can be opened from multiple screens, so using
+        // popBackStack returns to the screen that originally opened it.
         dialog(
-            route = "${FavGameRoutes.GAME_DETAILS}/{gameId}",
+            route = "${FavGameRoutes.GAME_DETAILS}/{source}/{gameId}",
             arguments = listOf(
+                navArgument("source") {
+                    type = NavType.StringType
+                },
                 navArgument("gameId") {
                     type = NavType.StringType
                 }
             )
         ) { entry ->
-            val gameId = entry.arguments?.getString("gameId").orEmpty()
-            val game = displayedGames.find { it.id == gameId }
+            val source = entry.arguments
+                ?.getString("source")
+                ?: "api"
+
+            val gameId = entry.arguments
+                ?.getString("gameId")
+                .orEmpty()
+
+            val isRecommended = source == "recommended"
+
+            val game = if (isRecommended) {
+                displayedRecommendedGames.find {
+                    it.id == gameId
+                }
+            } else {
+                displayedGames.find {
+                    it.id == gameId
+                }
+            }
+
+            // Personal games can be edited by the user or an admin.
+            // Recommended games can only be edited by an admin.
+            val canEdit = !isRecommended || isAdmin
+
             if (game != null) {
                 GameDetailsPopup(
                     game = game,
+                    canEdit = canEdit,
+
+                    onChangeRating = { newRating ->
+                        val accessToken = token
+
+                        if (accessToken != null && canEdit) {
+                            val body: Map<String, Any> = mapOf(
+                                "rating" to newRating
+                            )
+
+                            if (isRecommended) {
+                                recommendedGamesViewModel
+                                    ?.updateRecommendation(
+                                        accessToken,
+                                        gameId,
+                                        body
+                                    )
+                            } else {
+                                apiViewModel?.updateGame(
+                                    accessToken,
+                                    gameId,
+                                    body
+                                )
+                            }
+                        }
+                    },
+
+                    onChangeComment = { newComment ->
+                        val accessToken = token
+
+                        if (accessToken != null && canEdit) {
+                            val body: Map<String, Any> = mapOf(
+                                "comment" to newComment
+                            )
+
+                            if (isRecommended) {
+                                recommendedGamesViewModel
+                                    ?.updateRecommendation(
+                                        accessToken,
+                                        gameId,
+                                        body
+                                    )
+                            } else {
+                                apiViewModel?.updateGame(
+                                    accessToken,
+                                    gameId,
+                                    body
+                                )
+                            }
+                        }
+                    },
+
+                    onChangeAll = {
+                        if (canEdit) {
+                            navController.navigate(
+                                "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/$source/$gameId"
+                            )
+                        }
+                    },
+
                     // Return to the screen that opened the popup.
-                    onClose = { navController.popBackStack() }
+                    onClose = {
+                        navController.popBackStack()
+                    }
                 )
             } else {
                 PlaceholderScreen(
@@ -204,6 +339,115 @@ fun AppNavGraph(
                 )
             }
         }
+
+        // Change every attribute using PUT instead of PATCH.
+        composable(
+            route = "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/{source}/{gameId}",
+            arguments = listOf(
+                navArgument("source") {
+                    type = NavType.StringType
+                },
+                navArgument("gameId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+            val source = entry.arguments
+                ?.getString("source")
+                ?: "api"
+
+            val gameId = entry.arguments
+                ?.getString("gameId")
+                .orEmpty()
+
+            val isRecommended = source == "recommended"
+
+            // Personal games can be edited by the user or an admin.
+            // Recommended games can only be edited by an admin.
+            val canEdit = !isRecommended || isAdmin
+
+            val game = if (isRecommended) {
+                displayedRecommendedGames.find {
+                    it.id == gameId
+                }
+            } else {
+                displayedGames.find {
+                    it.id == gameId
+                }
+            }
+
+            when {
+                game == null -> {
+                    PlaceholderScreen(
+                        title = "Game not found",
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                !canEdit -> {
+                    PlaceholderScreen(
+                        title = "Editing is not available",
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                else -> {
+                    ChangeAllAttributesScreen(
+                        game = game,
+
+                        // Return to GameAttributesScreen.
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+
+                        onSaveClick = { changedGame ->
+                            val accessToken = token
+
+                            if (accessToken != null) {
+                                // PUT sends the complete game body.
+                                val body: Map<String, Any> = mapOf(
+                                    "gameName" to changedGame.gameName,
+                                    "thumbnail" to (
+                                            changedGame.thumbnail ?: ""
+                                            ),
+                                    "gameDescription" to
+                                            changedGame.gameDescription,
+                                    "platform" to changedGame.platform,
+                                    "genre" to changedGame.genre,
+                                    "rating" to changedGame.rating,
+                                    "comment" to changedGame.comment
+                                )
+
+                                if (isRecommended) {
+                                    // Only admins can replace all attributes
+                                    // of a recommended game.
+                                    recommendedGamesViewModel
+                                        ?.replaceRecommendation(
+                                            accessToken,
+                                            gameId,
+                                            body
+                                        )
+                                } else {
+                                    // Personal games are replaced in Api.
+                                    apiViewModel?.replaceGame(
+                                        accessToken,
+                                        gameId,
+                                        body
+                                    )
+                                }
+
+                                navController.popBackStack()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
         // Settings / Profile.
         composable(FavGameRoutes.SETTINGS) {
             SettingsScreen(
@@ -215,8 +459,10 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
+
                 onLogoutClick = {
                     onLogoutClick()
+
                     // Prevent logged-out users from returning to Home.
                     navController.navigate(
                         FavGameRoutes.LOGIN
@@ -224,9 +470,11 @@ fun AppNavGraph(
                         popUpTo(FavGameRoutes.GAME_LIST) {
                             inclusive = true
                         }
+
                         launchSingleTop = true
                     }
                 },
+
                 isAdmin = isAdmin
             )
         }
@@ -241,23 +489,34 @@ fun AppNavGraph(
                 }
             )
         ) { entry ->
-            val target = entry.arguments?.getString("target") ?: "api"
-            AddGameScreen(
+            val target = entry.arguments
+                ?.getString("target")
+                ?: "api"
 
-                // AddGame can be opened from multiple locations, so using popBAck stack instead of loc
-                onBackClick = { navController.popBackStack() },
+            AddGameScreen(
+                // AddGame can be opened from multiple locations, so using
+                // popBackStack returns to the screen that opened it.
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
                 onSaveClick = { newGame ->
                     val accessToken = token
+
                     if (accessToken != null) {
                         val body: Map<String, Any> = mapOf(
                             "gameName" to newGame.gameName,
-                            "thumbnail" to (newGame.thumbnail ?: ""),
-                            "gameDescription" to newGame.gameDescription,
+                            "thumbnail" to (
+                                    newGame.thumbnail ?: ""
+                                    ),
+                            "gameDescription" to
+                                    newGame.gameDescription,
                             "platform" to newGame.platform,
                             "genre" to newGame.genre,
                             "rating" to newGame.rating,
                             "comment" to newGame.comment
                         )
+
                         if (target == "recommended") {
                             // Only admins can add recommended games.
                             if (isAdmin) {
@@ -266,11 +525,16 @@ fun AppNavGraph(
                                         accessToken,
                                         body
                                     )
+
                                 navController.popBackStack()
                             }
                         } else {
                             // Personal games are stored in Api.
-                            apiViewModel?.addGame(accessToken, body)
+                            apiViewModel?.addGame(
+                                accessToken,
+                                body
+                            )
+
                             navController.popBackStack()
                         }
                     }
@@ -278,7 +542,7 @@ fun AppNavGraph(
             )
         }
 
-        // TODO:ADD RecommendedGamesScreen
+        // TODO: ADD RecommendedGamesScreen
         composable(FavGameRoutes.RECOMMENDED_GAMES) {
             PlaceholderScreen(
                 title = "Recommended Games",
@@ -308,7 +572,13 @@ private fun PlaceholderScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = title)
-        Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier.padding(
+                top = 16.dp
+            )
+        ) {
             Text("Back")
         }
     }

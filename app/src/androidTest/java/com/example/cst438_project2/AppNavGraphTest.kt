@@ -126,15 +126,228 @@ class AppNavGraphTest {
     @Test
     fun recommendedRoute_displaysRecommendedGamesScreen() {
         launchGraph(isLoggedIn = true)
+
         composeRule.runOnIdle {
             navController.navigate(
                 FavGameRoutes.RECOMMENDED_GAMES
             )
         }
+
         composeRule.waitForIdle()
+
         composeRule.runOnIdle {
             assertEquals(
                 FavGameRoutes.RECOMMENDED_GAMES,
+                navController.currentDestination?.route
+            )
+        }
+    }
+
+    @Test
+    fun gameAttributesRoute_hasCorrectSourceAndGameId() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule.runOnIdle {
+            navController.navigate(
+                "${FavGameRoutes.GAME_DETAILS}/api/test-game-id"
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                "${FavGameRoutes.GAME_DETAILS}/{source}/{gameId}",
+                navController.currentDestination?.route
+            )
+
+            assertEquals(
+                "api",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("source")
+            )
+
+            assertEquals(
+                "test-game-id",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("gameId")
+            )
+        }
+    }
+
+    @Test
+    fun recommendedGameAttributesRoute_hasCorrectSourceAndGameId() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule.runOnIdle {
+            navController.navigate(
+                "${FavGameRoutes.GAME_DETAILS}/recommended/test-recommended-id"
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                "${FavGameRoutes.GAME_DETAILS}/{source}/{gameId}",
+                navController.currentDestination?.route
+            )
+
+            assertEquals(
+                "recommended",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("source")
+            )
+
+            assertEquals(
+                "test-recommended-id",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("gameId")
+            )
+        }
+    }
+
+    @Test
+    fun changeAllAttributesRoute_hasCorrectSourceAndGameId() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule.runOnIdle {
+            navController.navigate(
+                "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/api/test-game-id"
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/{source}/{gameId}",
+                navController.currentDestination?.route
+            )
+
+            assertEquals(
+                "api",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("source")
+            )
+
+            assertEquals(
+                "test-game-id",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("gameId")
+            )
+        }
+    }
+
+    @Test
+    fun recommendedChangeAllAttributesRoute_hasCorrectSourceAndGameId() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule.runOnIdle {
+            navController.navigate(
+                "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/recommended/test-recommended-id"
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                "${FavGameRoutes.CHANGE_ALL_ATTRIBUTES}/{source}/{gameId}",
+                navController.currentDestination?.route
+            )
+
+            assertEquals(
+                "recommended",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("source")
+            )
+
+            assertEquals(
+                "test-recommended-id",
+                navController.currentBackStackEntry
+                    ?.arguments
+                    ?.getString("gameId")
+            )
+        }
+    }
+
+    @Test
+    fun viewAllBack_returnsToGameListRoute() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule.runOnIdle {
+            navController.navigate(
+                FavGameRoutes.VIEW_ALL_GAMES
+            )
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithContentDescription("Back")
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                FavGameRoutes.GAME_LIST,
+                navController.currentDestination?.route
+            )
+        }
+    }
+
+    @Test
+    fun settingsBack_returnsToGameListRoute() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule
+            .onNodeWithContentDescription("Profile")
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithContentDescription("Back")
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                FavGameRoutes.GAME_LIST,
+                navController.currentDestination?.route
+            )
+        }
+    }
+
+    @Test
+    fun addGameBack_returnsToGameListRoute() {
+        launchGraph(isLoggedIn = true)
+
+        composeRule
+            .onNodeWithContentDescription("Add game")
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithContentDescription("Back")
+            .performClick()
+
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(
+                FavGameRoutes.GAME_LIST,
                 navController.currentDestination?.route
             )
         }
