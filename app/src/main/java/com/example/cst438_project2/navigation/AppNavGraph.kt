@@ -221,6 +221,25 @@ fun AppNavGraph(
                             "${FavGameRoutes.GAME_DETAILS}/api/${apiGame.id}"
                         )
                     }
+                },
+
+                onRemoveGame = { gameToDelete ->
+                    // Same temporary lookup as onGameClick, to get the backend id
+                    val apiGame = apiGames.find {
+                        it.gameName == gameToDelete.gameName &&
+                                it.thumbnail == (gameToDelete.thumbnail ?: "") &&
+                                it.gameDescription == gameToDelete.gameDescription &&
+                                it.platform == gameToDelete.platform &&
+                                it.genre == gameToDelete.genre &&
+                                it.rating == gameToDelete.rating &&
+                                it.comment == gameToDelete.comment
+                    }
+                    val accessToken = token
+
+                    // Deletes on the server, then the ViewModel reloads the list
+                    if (apiGame != null && accessToken != null) {
+                        apiViewModel?.deleteGame(accessToken, apiGame.id)
+                    }
                 }
             )
         }

@@ -32,13 +32,15 @@ class ViewAllGamesScreenTest {
     private fun showScreen(
         games: List<NewGame> = emptyList(),
         onBackClick: () -> Unit = { },
-        onGameClick: (NewGame) -> Unit = { }
+        onGameClick: (NewGame) -> Unit = { },
+        onRemoveGame: (NewGame) -> Unit = { }
     ) {
         composeTestRule.setContent {
             ViewAllGamesScreen(
                 games = games,
                 onBackClick = onBackClick,
-                onGameClick = onGameClick
+                onGameClick = onGameClick,
+                onRemoveGame = onRemoveGame
             )
         }
     }
@@ -265,5 +267,76 @@ class ViewAllGamesScreenTest {
         composeTestRule.onNodeWithText("Order added").performClick()
 
         assertTrue(topOf("Zelda") < topOf("Halo"))
+    }
+
+    // ---------- Remove game ----------
+
+    @Test
+    fun eachGameHasARemoveButton() {
+        showScreen(games = listOf(game("Halo", "Shooter"), game("Celeste", "Platformer")))
+
+        composeTestRule.onNodeWithContentDescription("Remove Halo").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Remove Celeste").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingTrashAsksBeforeRemoving() {
+        var removedGame: NewGame? = null
+        showScreen(
+            games = listOf(game("Halo", "Shooter")),
+            onRemoveGame = { removedGame = it }
+        )
+
+        composeTestRule.onNodeWithContentDescription("Remove Halo").performClick()
+
+        // Popup shows up, but nothing is removed yet
+        composeTestRule.onNodeWithText("Remove game?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals(null, removedGame)
+    }
+
+    @Test
+    fun cancelClosesPopupWithoutRemoving() {
+        var removedGame: NewGame? = null
+        showScreen(
+            games = listOf(game("Halo", "Shooter")),
+            onRemoveGame = { removedGame = it }
+        )
+
+        composeTestRule.onNodeWithContentDescription("Remove Halo").performClick()
+        composeTestRule.onNodeWithText("Cancel").performClick()
+
+        composeTestRule.onNodeWithText("Remove game?").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Halo").assertIsDisplayed()
+        assertEquals(null, removedGame)
+    }
+
+    @Test
+    fun confirmingRemoveSendsThatGame() {
+        var removedGame: NewGame? = null
+        val halo = game("Halo", "Shooter")
+        val celeste = game("Celeste", "Platformer")
+        showScreen(games = listOf(halo, celeste), onRemoveGame = { removedGame = it })
+
+        composeTestRule.onNodeWithContentDescription("Remove Celeste").performClick()
+        composeTestRule.onNodeWithText("Remove").performClick()
+
+        // The right game is sent out, and the popup closes
+        assertEquals(celeste, removedGame)
+        composeTestRule.onNodeWithText("Remove game?").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTrashDoesNotOpenTheGame() {
+        var clickedGame: NewGame? = null
+        showScreen(
+            games = listOf(game("Halo", "Shooter")),
+            onGameClick = { clickedGame = it }
+        )
+
+        composeTestRule.onNodeWithContentDescription("Remove Halo").performClick()
+
+        // Only the popup opens; the game details screen is not opened
+        assertEquals(null, clickedGame)
     }
 }
