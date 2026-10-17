@@ -2,6 +2,9 @@ package com.example.cst438_project2
 
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -92,7 +95,7 @@ class ViewAllGamesScreenTest {
         composeTestRule.onNodeWithContentDescription("Platform filter").performClick()
         composeTestRule.onNodeWithText("Mobile").performClick()
 
-        composeTestRule.onNodeWithText("No games match your filters").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No games match your search or filters").assertIsDisplayed()
     }
 
     @Test
@@ -188,5 +191,79 @@ class ViewAllGamesScreenTest {
         composeTestRule.onNodeWithText("Celeste").performClick()
 
         assertEquals(celeste, clickedGame)
+    }
+
+    // ---------- Search bar ----------
+
+    // The search bar is the only text box on screen while the filter panel is closed
+    private fun typeInSearch(text: String) {
+        composeTestRule.onNode(hasSetTextAction()).performTextInput(text)
+    }
+
+    @Test
+    fun searchBarIsShownNextToFilter() {
+        showScreen(games = listOf(game("Halo", "Shooter")))
+
+        composeTestRule.onNodeWithText("Search games…").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Filter").assertIsDisplayed()
+    }
+
+    @Test
+    fun typingInSearchNarrowsTheList() {
+        showScreen(games = listOf(game("Halo", "Shooter"), game("Stardew Valley", "Simulation")))
+
+        typeInSearch("star")
+
+        composeTestRule.onNodeWithText("Stardew Valley").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Halo").assertDoesNotExist()
+        composeTestRule.onNodeWithText("1 of 2 games").assertIsDisplayed()
+    }
+
+    @Test
+    fun clearSearchShowsEverythingAgain() {
+        showScreen(games = listOf(game("Halo", "Shooter"), game("Stardew Valley", "Simulation")))
+
+        typeInSearch("zzz")
+        composeTestRule.onNodeWithText("No games match your search or filters").assertIsDisplayed()
+
+        composeTestRule.onNodeWithContentDescription("Clear search").performClick()
+
+        composeTestRule.onNodeWithText("Halo").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Stardew Valley").assertIsDisplayed()
+    }
+
+    // ---------- Sort (inside the filter panel) ----------
+
+    // How far down the screen a game's title is (smaller = higher up)
+    private fun topOf(text: String) =
+        composeTestRule.onNodeWithText(text).getUnclippedBoundsInRoot().top
+
+    @Test
+    fun choosingAZSortsTheList() {
+        showScreen(games = listOf(game("Zelda", "Adventure"), game("Halo", "Shooter")))
+
+        // Order added: Zelda first
+        assertTrue(topOf("Zelda") < topOf("Halo"))
+
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+        composeTestRule.onNodeWithContentDescription("Sort filter").performClick()
+        composeTestRule.onNodeWithText("A–Z").performClick()
+
+        // A–Z: Halo first
+        assertTrue(topOf("Halo") < topOf("Zelda"))
+    }
+
+    @Test
+    fun choosingOrderAddedUndoesTheSort() {
+        showScreen(games = listOf(game("Zelda", "Adventure"), game("Halo", "Shooter")))
+
+        composeTestRule.onNodeWithContentDescription("Filter").performClick()
+        composeTestRule.onNodeWithContentDescription("Sort filter").performClick()
+        composeTestRule.onNodeWithText("A–Z").performClick()
+
+        composeTestRule.onNodeWithContentDescription("Sort filter").performClick()
+        composeTestRule.onNodeWithText("Order added").performClick()
+
+        assertTrue(topOf("Zelda") < topOf("Halo"))
     }
 }
