@@ -81,12 +81,41 @@ class AdminViewModelTest {
             isAdmin = true
         )
 
-        whenever(api.updateUser("Bearer token", "1", mapOf("isAdmin" to true)))
+        whenever(
+            api.updateUser(
+                "Bearer token",
+                "1",
+                mapOf(
+                    "isAdmin" to true
+                )
+            )
+        )
             .thenReturn(updatedUser)
+
         whenever(api.listUsers("Bearer token"))
-            .thenReturn(listOf(updatedUser))
-        vm.toggleAdmin("token", "1", true)
+            .thenReturn(
+                listOf(updatedUser)
+            )
+
+        vm.toggleAdmin(
+            "token",
+            "1",
+            true
+        )
+
         dispatcher.scheduler.advanceUntilIdle()
-        assertTrue(vm.selectedUser.value?.isAdmin == true)
+
+        assertTrue(
+            vm.selectedUser.value?.isAdmin == true
+        )
+
+        assertEquals(
+            1,
+            vm.users.value.size
+        )
+
+        assertTrue(
+            vm.users.value[0].isAdmin
+        )
     }
 }

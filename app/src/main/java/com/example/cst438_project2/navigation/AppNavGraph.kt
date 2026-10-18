@@ -244,6 +244,12 @@ fun AppNavGraph(
                     }
                 },
 
+                onAddClick = {
+                    navController.navigate(
+                        "${FavGameRoutes.ADD_GAME}/api"
+                    )
+                },
+
                 onGameClick = { selectedGame ->
                     // Temporary lookup because NewGame has no UUID.
                     val apiGame = apiGames.find {
@@ -528,17 +534,43 @@ fun AppNavGraph(
                 onDeleteAdminUser = { userId ->
                     val accessToken = token
 
-                    if (isAdmin && accessToken != null) {
+                    if (
+                        isAdmin &&
+                        accessToken != null &&
+                        userId != user?.id
+                    ) {
                         adminViewModel?.clearError()
-                        adminViewModel?.deleteUser(accessToken, userId)
+                        adminViewModel?.deleteUser(
+                            accessToken,
+                            userId
+                        )
                     }
                 },
+
+                onToggleAdminUser = { userId, newAdminValue ->
+                    val accessToken = token
+
+                    if (
+                        isAdmin &&
+                        accessToken != null &&
+                        userId != user?.id
+                    ) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.toggleAdmin(
+                            accessToken,
+                            userId,
+                            newAdminValue
+                        )
+                    }
+                },
+
                 onSaveIcon = { iconUrl ->
                     if (token != null) {
                         userViewModel?.clearError()
                         userViewModel?.updateIcon(token, iconUrl)
                     }
                 },
+
                 onBackClick = {
                     navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
@@ -557,6 +589,7 @@ fun AppNavGraph(
                 },
 
                 isAdmin = isAdmin,
+                currentUserId = user?.id,
                 displayName = displayName,
                 profileImageUrl = profilePhotoUrl,
                 loading = userLoading,
@@ -672,16 +705,28 @@ fun AppNavGraph(
                 isAdmin = isAdmin,
                 loading = recommendedLoading,
                 error = recommendedError,
+
                 onBackClick = {
                     navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
                     }
                 },
+
+                onAddClick = {
+                    // Only admins can add recommended games.
+                    if (isAdmin) {
+                        navController.navigate(
+                            "${FavGameRoutes.ADD_GAME}/recommended"
+                        )
+                    }
+                },
+
                 onGameClick = { game ->
                     navController.navigate(
                         "${FavGameRoutes.GAME_DETAILS}/recommended/${game.id}"
                     )
                 },
+
                 onDeleteGame = { gameId ->
                     val accessToken = token
 
@@ -690,6 +735,7 @@ fun AppNavGraph(
                             ?.deleteRecommendation(accessToken, gameId)
                     }
                 },
+
                 onRetry = {
                     val accessToken = token
 

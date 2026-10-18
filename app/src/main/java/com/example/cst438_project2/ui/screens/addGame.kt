@@ -91,6 +91,7 @@ fun AddGameScreen(
         modifier = modifier
             .fillMaxSize()
             .background(AddScreenBg)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
         // Header: back arrow + big bold title (stays at the top, doesn't scroll)
         Row(

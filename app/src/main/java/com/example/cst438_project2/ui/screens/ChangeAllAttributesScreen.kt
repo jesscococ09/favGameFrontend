@@ -86,6 +86,7 @@ fun ChangeAllAttributesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ChangeAllBackground)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
         // Header: back arrow and title.
         Row(
