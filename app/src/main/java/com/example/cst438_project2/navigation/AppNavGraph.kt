@@ -74,6 +74,11 @@ fun AppNavGraph(
         ?.value
         .orEmpty()
 
+    val selectedAdminUser = adminViewModel
+        ?.selectedUser
+        ?.collectAsState()
+        ?.value
+
     val adminLoading = adminViewModel
         ?.loading
         ?.collectAsState()
@@ -519,6 +524,7 @@ fun AppNavGraph(
         composable(FavGameRoutes.SETTINGS) {
             SettingsScreen(
                 adminUsers = adminUsers,
+                selectedAdminUser = selectedAdminUser,
                 adminLoading = adminLoading,
                 adminError = adminError,
 
@@ -528,6 +534,22 @@ fun AppNavGraph(
                     if (isAdmin && accessToken != null) {
                         adminViewModel?.clearError()
                         adminViewModel?.loadUsers(accessToken)
+                    }
+                },
+
+                onViewAdminUser = { userId ->
+                    val accessToken = token
+
+                    if (
+                        isAdmin &&
+                        accessToken != null &&
+                        userId.isNotBlank()
+                    ) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.loadUser(
+                            accessToken,
+                            userId
+                        )
                     }
                 },
 

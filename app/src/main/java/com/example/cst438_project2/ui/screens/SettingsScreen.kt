@@ -42,9 +42,11 @@ fun SettingsScreen(
     isAdmin: Boolean = false,
     currentUserId: String? = null,
     adminUsers: List<User> = emptyList(),
+    selectedAdminUser: User? = null,
     adminLoading: Boolean = false,
     adminError: String? = null,
     onLoadAdminUsers: () -> Unit = {},
+    onViewAdminUser: (String) -> Unit = {},
     onDeleteAdminUser: (String) -> Unit = {},
     onToggleAdminUser: (String, Boolean) -> Unit = { _, _ -> },
     displayName: String = "",
@@ -298,6 +300,14 @@ fun SettingsScreen(
                                         isCurrentUser =
                                             adminUser.id == currentUserId,
 
+                                        onViewClick = {
+                                            val userId = adminUser.id
+
+                                            if (!userId.isNullOrBlank()) {
+                                                onViewAdminUser(userId)
+                                            }
+                                        },
+
                                         onRoleClick = {
                                             if (
                                                 adminUser.id != currentUserId &&
@@ -323,6 +333,41 @@ fun SettingsScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                selectedAdminUser?.let { selectedUser ->
+                    SettingsSection(
+                        title = "Selected User"
+                    ) {
+                        Text(
+                            text = selectedUser.displayName,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "User ID: ${selectedUser.id}",
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            text = "GitHub ID: ${selectedUser.githubId}",
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            text = if (selectedUser.isAdmin) {
+                                "Role: Admin"
+                            } else {
+                                "Role: User"
+                            },
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -555,6 +600,7 @@ private fun AdminUserRow(
     user: User,
     loading: Boolean,
     isCurrentUser: Boolean,
+    onViewClick: () -> Unit,
     onRoleClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -625,6 +671,23 @@ private fun AdminUserRow(
                     modifier = Modifier.padding(top = 3.dp)
                 )
             }
+        }
+
+        Button(
+            onClick = onViewClick,
+            enabled = !loading &&
+                    !user.id.isNullOrBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF1565C0),
+                contentColor = Color.White
+            )
+        ) {
+            Text(
+                text = "View User",
+                fontSize = 12.sp
+            )
         }
 
         if (!isCurrentUser) {
