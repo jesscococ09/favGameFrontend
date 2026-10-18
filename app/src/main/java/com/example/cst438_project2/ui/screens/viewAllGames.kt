@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
@@ -119,6 +121,7 @@ fun ViewAllGamesScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onGameClick: (NewGame) -> Unit = {},
+    onRemoveGame: (NewGame) -> Unit = {},
 ) {
 
     // Current filters, and whether the filter panel is showing
@@ -130,6 +133,10 @@ fun ViewAllGamesScreen(
 
     // What's typed in the search bar
     var searchQuery by remember { mutableStateOf("") }
+
+
+    // The game the user tapped the trash can on (null = popup closed)
+    var gameToRemove by remember { mutableStateOf<NewGame?>(null) }
 
     // Apply the filters, then the search, then sort A–Z if chosen
     val shownGames = remember(games, filters, searchQuery, sortAZ) {
@@ -273,13 +280,40 @@ fun ViewAllGamesScreen(
             // Scrollable list of the filtered games
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 itemsIndexed(shownGames) { _, game ->
-                    ViewAllGameRow(game = game, onClick = { onGameClick(game) })
+                    ViewAllGameRow(
+                        game = game,
+                        onClick = { onGameClick(game) },
+                        onRemoveClick = { gameToRemove = game }
+                    )
                     HorizontalDivider(
                         color = ViewAllDivider,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
             }
+        }
+
+
+        // "Are you sure?" popup before removing a game
+        gameToRemove?.let { game ->
+            AlertDialog(
+                onDismissRequest = { gameToRemove = null },
+                title = { Text("Remove game?") },
+                text = { Text("Remove \"${game.gameName}\" from your games? This can't be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onRemoveGame(game)
+                        gameToRemove = null
+                    }) {
+                        Text("Remove", color = Color(0xFFE5484D))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { gameToRemove = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
 
@@ -433,12 +467,12 @@ private fun FilterDropdown(
  */
 
 @Composable
-private fun ViewAllGameRow(game: NewGame, onClick: () -> Unit) {
+private fun ViewAllGameRow(game: NewGame, onClick: () -> Unit, onRemoveClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -460,6 +494,15 @@ private fun ViewAllGameRow(game: NewGame, onClick: () -> Unit) {
             fontSize = 14.sp,
             maxLines = 1
         )
+
+        // Trash can to remove this game (asks first)
+        IconButton(onClick = onRemoveClick) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = "Remove ${game.gameName}",
+                tint = ViewAllSubtle
+            )
+        }
     }
 }
 
