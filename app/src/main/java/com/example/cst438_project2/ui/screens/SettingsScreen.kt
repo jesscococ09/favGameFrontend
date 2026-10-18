@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import com.example.cst438_project2.data.model.User
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -32,18 +32,36 @@ private val SettingsSurface = Color(0xFF1C1C20)
 private val SettingsPurple = Color(0xFF5A287D)
 private val SettingsDanger = Color(0xFFB3261E)
 
+
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit,
     isAdmin: Boolean = false,
+    adminUsers: List<User> = emptyList(),
+    adminLoading: Boolean = false,
+    adminError: String? = null,
+    onLoadAdminUsers: () -> Unit = {},
+    onDeleteAdminUser: (String) -> Unit = {},
+    displayName: String = "",
+    profileImageUrl: String? = null,
+    onSaveIcon: (String) -> Unit = {},
+    loading: Boolean = false,
+    error: String? = null,
+    deleteSucceeded: Boolean = false,
+    onSaveDisplayName: (String) -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
+    onClearError: () -> Unit = {},
+    onAccountDeleted: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Temporary UI state. These values are not saved to the backend.
-    var username by remember { mutableStateOf("") }
-    var currentPassword by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var profileImageUri by remember { mutableStateOf<String?>(null) }
+    var username by remember(displayName) {
+        mutableStateOf(displayName)
+    }
+
+    var profileImageUri by remember(profileImageUrl) {
+        mutableStateOf(profileImageUrl)
+    }
     // Temporary UI state for admin actions.
     var targetUsername by remember { mutableStateOf("") }
     var targetComment by remember { mutableStateOf("") }
@@ -60,6 +78,16 @@ fun SettingsScreen(
 
     // Confirms before the UI-only delete action.
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    LaunchedEffect(deleteSucceeded) {
+        if (deleteSucceeded) {
+            onAccountDeleted()
+        }
+    }
+    LaunchedEffect(isAdmin) {
+        if (isAdmin) {
+            onLoadAdminUsers()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -97,6 +125,19 @@ fun SettingsScreen(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            if (loading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (error != null) {
+                Text(
+                    text = error,
+                    color = Color(0xFFFF8A80),
+                    fontSize = 14.sp
+                )
+            }
             // Profile icon
             SettingsSection(title = "Profile Icon") {
                 Column(
@@ -141,6 +182,16 @@ fun SettingsScreen(
                         Spacer(Modifier.width(8.dp))
                         Text("Change Icon")
                     }
+                    SettingsActionButton(
+                        text = "Save Profile Icon",
+                        enabled = !loading && !profileImageUri.isNullOrBlank(),
+                        onClick = {
+                            profileImageUri?.let { uri ->
+                                onClearError()
+                                onSaveIcon(uri)
+                            }
+                        }
+                    )
                 }
             }
 
@@ -153,36 +204,17 @@ fun SettingsScreen(
                     placeholder = "Enter a username"
                 )
 
+
                 SettingsActionButton(
                     text = "Save Username",
+                    enabled = !loading && username.isNotBlank(),
                     onClick = {
-                        // TODO: Connect to the username update API.
-                    }
-                )
-            }
+                        val newName = username.trim()
 
-            // Password
-            SettingsSection(title = "Change Password") {
-                SettingsTextField(
-                    value = currentPassword,
-                    onValueChange = { currentPassword = it },
-                    label = "Current Password",
-                    placeholder = "Enter current password",
-                    isPassword = true
-                )
-
-                SettingsTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
-                    label = "New Password",
-                    placeholder = "Enter new password",
-                    isPassword = true
-                )
-
-                SettingsActionButton(
-                    text = "Update Password",
-                    onClick = {
-                        // TODO: Connect to password update logic if supported.
+                        if (newName.isNotEmpty()) {
+                            onClearError()
+                            onSaveDisplayName(newName)
+                        }
                     }
                 )
             }
@@ -230,11 +262,11 @@ fun SettingsScreen(
                     }
                 }
 
-                // ADMIN FEATURE 2: Delete a user account.
+                // ADMIN FEATURE: Delete a user account.
                 SettingsSection(title = "Delete User") {
                     Text(
-                        text = "Remove a user's account. This is separate " +
-                                "from deleting your own account.",
+                        text = "Remove a user's account. " +
+                                "This is separate from deleting your own account.",
                         color = Color.LightGray,
                         fontSize = 14.sp
                     )
@@ -242,15 +274,31 @@ fun SettingsScreen(
                     SettingsTextField(
                         value = targetUsername,
                         onValueChange = { targetUsername = it },
-                        label = "Username",
-                        placeholder = "Enter the username to remove"
+                        label = "Display Name",
+                        placeholder = "Enter the user's display name"
                     )
+
+                    if (adminLoading) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    if (adminError != null) {
+                        Text(
+                            text = adminError,
+                            color = Color(0xFFFF8A80),
+                            fontSize = 14.sp
+                        )
+                    }
 
                     Button(
                         onClick = {
+                            onClearError()
                             pendingAdminAction = "user"
                         },
-                        enabled = targetUsername.isNotBlank(),
+                        enabled = !adminLoading &&
+                                targetUsername.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
@@ -290,6 +338,7 @@ fun SettingsScreen(
 
                 Button(
                     onClick = { showDeleteConfirmation = true },
+                    enabled = !loading,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -304,26 +353,41 @@ fun SettingsScreen(
     }
 
     // UI confirmation only. No account is deleted yet.
+
     if (showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete Account?") },
+            onDismissRequest = {
+                if (!loading) {
+                    showDeleteConfirmation = false
+                }
+            },
+            title = {
+                Text("Delete Account?")
+            },
             text = {
                 Text(
-                    "Account deletion is not connected yet. " +
-                            "No account will be deleted."
+                    "This permanently deletes your FavGame account " +
+                            "and associated game data. This action cannot be undone."
                 )
             },
             confirmButton = {
                 TextButton(
-                    onClick = { showDeleteConfirmation = false }
+                    enabled = !loading,
+                    onClick = {
+                        onClearError()
+                        onDeleteAccount()
+                        showDeleteConfirmation = false
+                    }
                 ) {
-                    Text("Got it")
+                    Text("Delete Account")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteConfirmation = false }
+                    enabled = !loading,
+                    onClick = {
+                        showDeleteConfirmation = false
+                    }
                 ) {
                     Text("Cancel")
                 }
@@ -335,41 +399,89 @@ fun SettingsScreen(
     }
 
 
-    if (pendingAdminAction != null) {
-        val actionName = if (pendingAdminAction == "comment") {
-            "Delete User Comment"
-        } else {
-            "Delete User"
+
+    if (pendingAdminAction == "user") {
+        val matchingUsers = adminUsers.filter {
+            it.displayName.trim().equals(
+                targetUsername.trim(),
+                ignoreCase = true
+            )
+        }
+
+        var confirmationError by remember {
+            mutableStateOf<String?>(null)
         }
 
         AlertDialog(
             onDismissRequest = {
-                pendingAdminAction = null
+                if (!adminLoading) {
+                    pendingAdminAction = null
+                    confirmationError = null
+                }
             },
             title = {
-                Text(actionName)
+                Text("Delete User?")
             },
             text = {
-                Text(
-                    "This is a UI preview. No comments or user accounts " +
-                            "will be deleted until the admin functionality is connected."
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Permanently delete the account for " +
+                                "\"${targetUsername.trim()}\" " +
+                                "and its associated data?"
+                    )
+
+                    if (confirmationError != null) {
+                        Text(
+                            text = confirmationError!!,
+                            color = Color(0xFFFF8A80)
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
+                    enabled = !adminLoading,
                     onClick = {
-                        // TODO: Connect the appropriate admin API.
-                        // No deletion happens in this UI-only version.
-                        pendingAdminAction = null
+                        val target = matchingUsers.singleOrNull()
+                        val userId = target?.id
+
+                        when {
+                            matchingUsers.isEmpty() -> {
+                                confirmationError =
+                                    "No matching display name was found. " +
+                                            "Refresh the user list and check the name."
+                            }
+
+                            matchingUsers.size > 1 -> {
+                                confirmationError =
+                                    "Multiple users have this display name. " +
+                                            "A unique user ID is needed."
+                            }
+
+                            userId.isNullOrBlank() -> {
+                                confirmationError =
+                                    "This user's ID is missing."
+                            }
+
+                            else -> {
+                                onDeleteAdminUser(userId)
+                                pendingAdminAction = null
+                                targetUsername = ""
+                            }
+                        }
                     }
                 ) {
-                    Text("Got it")
+                    Text("Delete")
                 }
             },
             dismissButton = {
                 TextButton(
+                    enabled = !adminLoading,
                     onClick = {
                         pendingAdminAction = null
+                        confirmationError = null
                     }
                 ) {
                     Text("Cancel")
@@ -414,8 +526,7 @@ private fun SettingsTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    placeholder: String,
-    isPassword: Boolean = false
+    placeholder: String
 ) {
     OutlinedTextField(
         value = value,
@@ -424,11 +535,6 @@ private fun SettingsTextField(
         label = { Text(label) },
         placeholder = { Text(placeholder) },
         singleLine = true,
-        visualTransformation = if (isPassword) {
-            PasswordVisualTransformation()
-        } else {
-            androidx.compose.ui.text.input.VisualTransformation.None
-        },
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
             unfocusedTextColor = Color.White,
@@ -441,13 +547,16 @@ private fun SettingsTextField(
     )
 }
 
+
 @Composable
 private fun SettingsActionButton(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp),

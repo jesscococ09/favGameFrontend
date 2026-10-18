@@ -27,6 +27,7 @@ import com.example.cst438_project2.ui.screens.LoginScreen
 import com.example.cst438_project2.ui.screens.NewGame
 import com.example.cst438_project2.ui.screens.SettingsScreen
 import com.example.cst438_project2.ui.screens.ViewAllGamesScreen
+import com.example.cst438_project2.ui.screens.RecommendedGamesScreen
 import com.example.cst438_project2.ui.viewmodel.AdminViewModel
 import com.example.cst438_project2.ui.viewmodel.ApiViewModel
 import com.example.cst438_project2.ui.viewmodel.RecommendedGamesViewModel
@@ -52,6 +53,37 @@ fun AppNavGraph(
         ?.collectAsState()
         ?.value
 
+    val userLoading = userViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val userError = userViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
+
+    val deleteSucceeded = userViewModel
+        ?.deleteSucceeded
+        ?.collectAsState()
+        ?.value ?: false
+
+    val adminUsers = adminViewModel
+        ?.users
+        ?.collectAsState()
+        ?.value
+        .orEmpty()
+
+    val adminLoading = adminViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val adminError = adminViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
+
     val apiGames = apiViewModel
         ?.games
         ?.collectAsState()
@@ -63,6 +95,16 @@ fun AppNavGraph(
         ?.collectAsState()
         ?.value
         .orEmpty()
+
+    val recommendedLoading = recommendedGamesViewModel
+        ?.loading
+        ?.collectAsState()
+        ?.value ?: false
+
+    val recommendedError = recommendedGamesViewModel
+        ?.error
+        ?.collectAsState()
+        ?.value
 
     // Convert Api data into the model used by the UI.
     val displayedGames = apiGames.map { apiGame ->
@@ -111,8 +153,6 @@ fun AppNavGraph(
     val profilePhotoUrl = user?.iconUrl
     val displayName = user?.displayName.orEmpty()
 
-    @Suppress("UNUSED_VARIABLE")
-    val currentAdminViewModel = adminViewModel
 
     // Decide which screen to show when the graph first opens.
     val startDestination = if (isLoggedIn) {
@@ -468,13 +508,39 @@ fun AppNavGraph(
         }
 
         // Settings / Profile.
+
+        // Settings / Profile.
         composable(FavGameRoutes.SETTINGS) {
             SettingsScreen(
-                // Settings always goes back to Home.
+                adminUsers = adminUsers,
+                adminLoading = adminLoading,
+                adminError = adminError,
+
+                onLoadAdminUsers = {
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.loadUsers(accessToken)
+                    }
+                },
+
+                onDeleteAdminUser = { userId ->
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        adminViewModel?.clearError()
+                        adminViewModel?.deleteUser(accessToken, userId)
+                    }
+                },
+                onSaveIcon = { iconUrl ->
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.updateIcon(token, iconUrl)
+                    }
+                },
                 onBackClick = {
-                    navController.navigate(
-                        FavGameRoutes.GAME_LIST
-                    ) {
+                    navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
                     }
                 },
@@ -482,21 +548,60 @@ fun AppNavGraph(
                 onLogoutClick = {
                     onLogoutClick()
 
-                    // Prevent logged-out users from returning to Home.
-                    navController.navigate(
-                        FavGameRoutes.LOGIN
-                    ) {
+                    navController.navigate(FavGameRoutes.LOGIN) {
                         popUpTo(FavGameRoutes.GAME_LIST) {
                             inclusive = true
                         }
-
                         launchSingleTop = true
                     }
                 },
 
-                isAdmin = isAdmin
+                isAdmin = isAdmin,
+                displayName = displayName,
+                profileImageUrl = profilePhotoUrl,
+                loading = userLoading,
+                error = userError,
+                deleteSucceeded = deleteSucceeded,
+
+                onSaveDisplayName = { newName ->
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.updateDisplayName(
+                            token,
+                            newName
+                        )
+                    }
+                },
+
+                onDeleteAccount = {
+                    if (token != null) {
+                        userViewModel?.clearError()
+                        userViewModel?.deleteUser(token)
+                    }
+                },
+
+                onClearError = {
+                    userViewModel?.clearError()
+                },
+
+                onAccountDeleted = {
+                    // Reset the success flag so it cannot trigger again later.
+                    userViewModel?.resetDeleteSucceeded()
+
+                    // Clear the saved token and PKCE verifier.
+                    onLogoutClick()
+
+                    // Return to Login and remove Home from the back stack.
+                    navController.navigate(FavGameRoutes.LOGIN) {
+                        popUpTo(FavGameRoutes.GAME_LIST) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
+
 
         // AddGame can be used for personal or recommended games.
         composable(
@@ -561,15 +666,36 @@ fun AppNavGraph(
             )
         }
 
-        // TODO: ADD RecommendedGamesScreen
         composable(FavGameRoutes.RECOMMENDED_GAMES) {
-            PlaceholderScreen(
-                title = "Recommended Games",
-                onBack = {
-                    navController.navigate(
-                        FavGameRoutes.GAME_LIST
-                    ) {
+            RecommendedGamesScreen(
+                games = displayedRecommendedGames,
+                isAdmin = isAdmin,
+                loading = recommendedLoading,
+                error = recommendedError,
+                onBackClick = {
+                    navController.navigate(FavGameRoutes.GAME_LIST) {
                         launchSingleTop = true
+                    }
+                },
+                onGameClick = { game ->
+                    navController.navigate(
+                        "${FavGameRoutes.GAME_DETAILS}/recommended/${game.id}"
+                    )
+                },
+                onDeleteGame = { gameId ->
+                    val accessToken = token
+
+                    if (isAdmin && accessToken != null) {
+                        recommendedGamesViewModel
+                            ?.deleteRecommendation(accessToken, gameId)
+                    }
+                },
+                onRetry = {
+                    val accessToken = token
+
+                    if (accessToken != null) {
+                        recommendedGamesViewModel
+                            ?.loadRecommendations(accessToken)
                     }
                 }
             )
