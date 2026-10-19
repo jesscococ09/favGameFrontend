@@ -14,6 +14,7 @@ interface AdminService {
         @Header("Authorization")
         token: String
     ): List<User>
+
     @GET("admin/{userId}")
     suspend fun getUser(
         @Header("Authorization")
@@ -21,6 +22,7 @@ interface AdminService {
         @Path("userId")
         userId: String
     ): User
+
     @PATCH("admin/{userId}")
     suspend fun updateUser(
         @Header("Authorization")
@@ -28,8 +30,9 @@ interface AdminService {
         @Path("userId")
         userId: String,
         @Body
-        body: Map<String,Any>
+        body: Map<String, @JvmSuppressWildcards Any>
     ): User
+
     @DELETE("admin/{userId}")
     suspend fun deleteUser(
         @Header("Authorization")

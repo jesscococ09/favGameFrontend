@@ -187,9 +187,7 @@ class ApiViewModel(private val repository: ApiRepository) : ViewModel() {
                         comment
                     )
                 _selectedGame.value = updatedGame
-                _games.value =
-                    repository.listMyGames(token)
-
+                _games.value = repository.listMyGames(token)
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {

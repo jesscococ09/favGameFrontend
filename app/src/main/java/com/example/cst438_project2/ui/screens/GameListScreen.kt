@@ -82,7 +82,8 @@ fun GameListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBg),
+            .background(ScreenBg)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(

@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -31,6 +32,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -120,6 +122,7 @@ fun ViewAllGamesScreen(
     games: List<NewGame> = emptyList(),
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
+    onAddClick: () -> Unit = {},
     onGameClick: (NewGame) -> Unit = {},
     onRemoveGame: (NewGame) -> Unit = {},
 ) {
@@ -149,6 +152,7 @@ fun ViewAllGamesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ViewAllBg)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
         // Header: back arrow and title, same style as Settings and Add Game
         Row(
@@ -169,8 +173,18 @@ fun ViewAllGamesScreen(
                 text = "All Games",
                 color = Color.White,
                 fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.weight(1f)
             )
+
+            IconButton(onClick = onAddClick) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Add game",
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
         }
 
         // Search bar (searches game titles) with the filter button to its right

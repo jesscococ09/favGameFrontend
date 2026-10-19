@@ -1,4 +1,3 @@
-
 package com.example.cst438_project2.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -7,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import com.example.cst438_project2.data.model.User
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,11 +40,15 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit,
     isAdmin: Boolean = false,
+    currentUserId: String? = null,
     adminUsers: List<User> = emptyList(),
+    selectedAdminUser: User? = null,
     adminLoading: Boolean = false,
     adminError: String? = null,
     onLoadAdminUsers: () -> Unit = {},
+    onViewAdminUser: (String) -> Unit = {},
     onDeleteAdminUser: (String) -> Unit = {},
+    onToggleAdminUser: (String, Boolean) -> Unit = { _, _ -> },
     displayName: String = "",
     profileImageUrl: String? = null,
     onSaveIcon: (String) -> Unit = {},
@@ -62,10 +68,15 @@ fun SettingsScreen(
     var profileImageUri by remember(profileImageUrl) {
         mutableStateOf(profileImageUrl)
     }
+
     // Temporary UI state for admin actions.
-    var targetUsername by remember { mutableStateOf("") }
-    var targetComment by remember { mutableStateOf("") }
-    var pendingAdminAction by remember { mutableStateOf<String?>(null) }
+    var userPendingRoleChange by remember {
+        mutableStateOf<User?>(null)
+    }
+
+    var userPendingDelete by remember {
+        mutableStateOf<User?>(null)
+    }
 
     // Opens the device's image picker for the profile icon.
     val imagePicker = rememberLauncherForActivityResult(
@@ -77,12 +88,16 @@ fun SettingsScreen(
     }
 
     // Confirms before the UI-only delete action.
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(deleteSucceeded) {
         if (deleteSucceeded) {
             onAccountDeleted()
         }
     }
+
     LaunchedEffect(isAdmin) {
         if (isAdmin) {
             onLoadAdminUsers()
@@ -93,6 +108,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(SettingsBackground)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
         // Header
         Row(
@@ -138,6 +154,7 @@ fun SettingsScreen(
                     fontSize = 14.sp
                 )
             }
+
             // Profile icon
             SettingsSection(title = "Profile Icon") {
                 Column(
@@ -179,12 +196,16 @@ fun SettingsScreen(
                             imageVector = Icons.Default.AddPhotoAlternate,
                             contentDescription = null
                         )
+
                         Spacer(Modifier.width(8.dp))
+
                         Text("Change Icon")
                     }
+
                     SettingsActionButton(
                         text = "Save Profile Icon",
-                        enabled = !loading && !profileImageUri.isNullOrBlank(),
+                        enabled = !loading &&
+                                !profileImageUri.isNullOrBlank(),
                         onClick = {
                             profileImageUri?.let { uri ->
                                 onClearError()
@@ -207,7 +228,8 @@ fun SettingsScreen(
 
                 SettingsActionButton(
                     text = "Save Username",
-                    enabled = !loading && username.isNotBlank(),
+                    enabled = !loading &&
+                            username.isNotBlank(),
                     onClick = {
                         val newName = username.trim()
 
@@ -221,63 +243,10 @@ fun SettingsScreen(
 
 
             if (isAdmin) {
-                // ADMIN FEATURE 1: Delete a user's comment.
-                SettingsSection(title = "Delete User Comment") {
-                    Text(
-                        text = "Remove an inappropriate or unwanted comment.",
-                        color = Color.LightGray,
-                        fontSize = 14.sp
-                    )
-
-                    SettingsTextField(
-                        value = targetUsername,
-                        onValueChange = { targetUsername = it },
-                        label = "Username",
-                        placeholder = "Enter the comment author's username"
-                    )
-
-                    SettingsTextField(
-                        value = targetComment,
-                        onValueChange = { targetComment = it },
-                        label = "Comment",
-                        placeholder = "Identify the comment to remove"
-                    )
-
-                    Button(
-                        onClick = {
-                            pendingAdminAction = "comment"
-                        },
-                        enabled = targetUsername.isNotBlank() &&
-                                targetComment.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SettingsDanger,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Delete User Comment")
-                    }
-                }
-
-                // ADMIN FEATURE: Delete a user account.
-                SettingsSection(title = "Delete User") {
-                    Text(
-                        text = "Remove a user's account. " +
-                                "This is separate from deleting your own account.",
-                        color = Color.LightGray,
-                        fontSize = 14.sp
-                    )
-
-                    SettingsTextField(
-                        value = targetUsername,
-                        onValueChange = { targetUsername = it },
-                        label = "Display Name",
-                        placeholder = "Enter the user's display name"
-                    )
-
+                // ADMIN FEATURE: View and manage all users.
+                SettingsSection(
+                    title = "Users (${adminUsers.size})"
+                ) {
                     if (adminLoading) {
                         LinearProgressIndicator(
                             modifier = Modifier.fillMaxWidth()
@@ -292,23 +261,113 @@ fun SettingsScreen(
                         )
                     }
 
-                    Button(
-                        onClick = {
-                            onClearError()
-                            pendingAdminAction = "user"
-                        },
-                        enabled = !adminLoading &&
-                                targetUsername.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SettingsDanger,
-                            contentColor = Color.White
-                        )
+                    when {
+                        adminLoading &&
+                                adminUsers.isEmpty() -> {
+                            Text(
+                                text = "Loading users...",
+                                color = Color.LightGray,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        adminUsers.isEmpty() -> {
+                            Text(
+                                text = "No users were found.",
+                                color = Color.LightGray,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 420.dp),
+                                verticalArrangement =
+                                    Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(
+                                    items = adminUsers,
+                                    key = { adminUser ->
+                                        adminUser.id
+                                            ?: adminUser.githubId
+                                    }
+                                ) { adminUser ->
+                                    AdminUserRow(
+                                        user = adminUser,
+                                        loading = adminLoading,
+                                        isCurrentUser =
+                                            adminUser.id == currentUserId,
+
+                                        onViewClick = {
+                                            val userId = adminUser.id
+
+                                            if (!userId.isNullOrBlank()) {
+                                                onViewAdminUser(userId)
+                                            }
+                                        },
+
+                                        onRoleClick = {
+                                            if (
+                                                adminUser.id != currentUserId &&
+                                                !adminUser.id
+                                                    .isNullOrBlank()
+                                            ) {
+                                                userPendingRoleChange =
+                                                    adminUser
+                                            }
+                                        },
+
+                                        onDeleteClick = {
+                                            if (
+                                                adminUser.id != currentUserId &&
+                                                !adminUser.id
+                                                    .isNullOrBlank()
+                                            ) {
+                                                userPendingDelete =
+                                                    adminUser
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                selectedAdminUser?.let { selectedUser ->
+                    SettingsSection(
+                        title = "Selected User"
                     ) {
-                        Text("Delete User")
+                        Text(
+                            text = selectedUser.displayName,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "User ID: ${selectedUser.id}",
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            text = "GitHub ID: ${selectedUser.githubId}",
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            text = if (selectedUser.isAdmin) {
+                                "Role: Admin"
+                            } else {
+                                "Role: User"
+                            },
+                            color = Color.LightGray,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -337,7 +396,9 @@ fun SettingsScreen(
                 )
 
                 Button(
-                    onClick = { showDeleteConfirmation = true },
+                    onClick = {
+                        showDeleteConfirmation = true
+                    },
                     enabled = !loading,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -399,89 +460,71 @@ fun SettingsScreen(
     }
 
 
-
-    if (pendingAdminAction == "user") {
-        val matchingUsers = adminUsers.filter {
-            it.displayName.trim().equals(
-                targetUsername.trim(),
-                ignoreCase = true
-            )
-        }
-
-        var confirmationError by remember {
-            mutableStateOf<String?>(null)
-        }
+    // Confirmation before changing a user's role.
+    userPendingRoleChange?.let { targetUser ->
+        val newAdminValue = !targetUser.isAdmin
 
         AlertDialog(
             onDismissRequest = {
                 if (!adminLoading) {
-                    pendingAdminAction = null
-                    confirmationError = null
+                    userPendingRoleChange = null
                 }
             },
             title = {
-                Text("Delete User?")
+                Text(
+                    text = if (newAdminValue) {
+                        "Make User Admin?"
+                    } else {
+                        "Make Admin a User?"
+                    }
+                )
             },
             text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Permanently delete the account for " +
-                                "\"${targetUsername.trim()}\" " +
-                                "and its associated data?"
-                    )
-
-                    if (confirmationError != null) {
-                        Text(
-                            text = confirmationError!!,
-                            color = Color(0xFFFF8A80)
-                        )
+                Text(
+                    text = if (newAdminValue) {
+                        "Are you sure you wish to make " +
+                                "\"${targetUser.displayName}\" " +
+                                "an admin?"
+                    } else {
+                        "Are you sure you wish to change " +
+                                "\"${targetUser.displayName}\" " +
+                                "to a regular user?"
                     }
-                }
+                )
             },
             confirmButton = {
                 TextButton(
                     enabled = !adminLoading,
                     onClick = {
-                        val target = matchingUsers.singleOrNull()
-                        val userId = target?.id
+                        val userId = targetUser.id
 
-                        when {
-                            matchingUsers.isEmpty() -> {
-                                confirmationError =
-                                    "No matching display name was found. " +
-                                            "Refresh the user list and check the name."
-                            }
+                        if (
+                            !userId.isNullOrBlank() &&
+                            userId != currentUserId
+                        ) {
+                            onToggleAdminUser(
+                                userId,
+                                newAdminValue
+                            )
 
-                            matchingUsers.size > 1 -> {
-                                confirmationError =
-                                    "Multiple users have this display name. " +
-                                            "A unique user ID is needed."
-                            }
-
-                            userId.isNullOrBlank() -> {
-                                confirmationError =
-                                    "This user's ID is missing."
-                            }
-
-                            else -> {
-                                onDeleteAdminUser(userId)
-                                pendingAdminAction = null
-                                targetUsername = ""
-                            }
+                            userPendingRoleChange = null
                         }
                     }
                 ) {
-                    Text("Delete")
+                    Text(
+                        text = if (newAdminValue) {
+                            "Make Admin"
+                        } else {
+                            "Make User"
+                        }
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
                     enabled = !adminLoading,
                     onClick = {
-                        pendingAdminAction = null
-                        confirmationError = null
+                        userPendingRoleChange = null
                     }
                 ) {
                     Text("Cancel")
@@ -493,7 +536,222 @@ fun SettingsScreen(
         )
     }
 
+
+    // Confirmation before an admin deletes a user.
+    userPendingDelete?.let { targetUser ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!adminLoading) {
+                    userPendingDelete = null
+                }
+            },
+            title = {
+                Text("Delete User?")
+            },
+            text = {
+                Text(
+                    text = "Permanently delete the account for " +
+                            "\"${targetUser.displayName}\" and " +
+                            "its associated game data? " +
+                            "This action cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !adminLoading,
+                    onClick = {
+                        val userId = targetUser.id
+
+                        if (
+                            !userId.isNullOrBlank() &&
+                            userId != currentUserId
+                        ) {
+                            onDeleteAdminUser(userId)
+                            userPendingDelete = null
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = SettingsDanger
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !adminLoading,
+                    onClick = {
+                        userPendingDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = SettingsSurface,
+            titleContentColor = Color.White,
+            textContentColor = Color.LightGray
+        )
+    }
 }
+
+
+@Composable
+private fun AdminUserRow(
+    user: User,
+    loading: Boolean,
+    isCurrentUser: Boolean,
+    onViewClick: () -> Unit,
+    onRoleClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = SettingsBackground,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (!user.iconUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = user.iconUrl,
+                    contentDescription =
+                        "${user.displayName} profile icon",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Default profile icon",
+                    tint = Color.LightGray,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = user.displayName,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "GitHub ID: ${user.githubId}",
+                    color = Color.LightGray,
+                    fontSize = 12.sp
+                )
+
+                Text(
+                    text = if (user.isAdmin) {
+                        "Admin"
+                    } else {
+                        "User"
+                    },
+                    color = if (user.isAdmin) {
+                        Color(0xFFBFA0E2)
+                    } else {
+                        Color.LightGray
+                    },
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 3.dp)
+                )
+            }
+        }
+
+        Button(
+            onClick = onViewClick,
+            enabled = !loading &&
+                    !user.id.isNullOrBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF1565C0),
+                contentColor = Color.White
+            )
+        ) {
+            Text(
+                text = "View User",
+                fontSize = 12.sp
+            )
+        }
+
+        if (!isCurrentUser) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onRoleClick,
+                    enabled = !loading &&
+                            !user.id.isNullOrBlank(),
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SettingsPurple,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = if (user.isAdmin) {
+                            "Make User"
+                        } else {
+                            "Make Admin"
+                        },
+                        fontSize = 12.sp
+                    )
+                }
+
+                Button(
+                    onClick = onDeleteClick,
+                    enabled = !loading &&
+                            !user.id.isNullOrBlank(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SettingsDanger,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(5.dp)
+                    )
+
+                    Text(
+                        text = "Delete",
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = "Current account",
+                color = Color.LightGray,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun SettingsSection(
@@ -521,6 +779,7 @@ private fun SettingsSection(
     }
 }
 
+
 @Composable
 private fun SettingsTextField(
     value: String,
@@ -532,8 +791,12 @@ private fun SettingsTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        placeholder = { Text(placeholder) },
+        label = {
+            Text(label)
+        },
+        placeholder = {
+            Text(placeholder)
+        },
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
@@ -566,6 +829,9 @@ private fun SettingsActionButton(
             contentColor = Color.White
         )
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold)
+        Text(
+            text,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

@@ -1,4 +1,3 @@
-
 package com.example.cst438_project2.ui.screens
 
 import androidx.compose.foundation.background
@@ -19,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -74,6 +74,7 @@ fun RecommendedGamesScreen(
     loading: Boolean,
     error: String?,
     onBackClick: () -> Unit,
+    onAddClick: () -> Unit,
     onGameClick: (Game) -> Unit,
     onDeleteGame: (String) -> Unit,
     onRetry: () -> Unit,
@@ -93,6 +94,7 @@ fun RecommendedGamesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(RecommendedBackground)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
 
         // Screen header
@@ -130,6 +132,19 @@ fun RecommendedGamesScreen(
                     color = Color.LightGray,
                     fontSize = 13.sp
                 )
+            }
+
+            // Only admins see the Add button.
+            if (isAdmin) {
+                IconButton(
+                    onClick = onAddClick
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add recommended game",
+                        tint = Color.White
+                    )
+                }
             }
         }
 
@@ -365,52 +380,54 @@ fun RecommendedGamesScreen(
     }
 
     // Confirmation dialog before deleting a recommendation
-    gamePendingDelete?.let { game ->
-        AlertDialog(
-            onDismissRequest = {
-                gamePendingDelete = null
-            },
+    if (isAdmin) {
+        gamePendingDelete?.let { game ->
+            AlertDialog(
+                onDismissRequest = {
+                    gamePendingDelete = null
+                },
 
-            title = {
-                Text("Remove recommendation?")
-            },
+                title = {
+                    Text("Remove recommendation?")
+                },
 
-            text = {
-                Text(
-                    "Remove “${game.title}” from the shared " +
-                            "recommended games list? This will not delete " +
-                            "it from users’ personal libraries."
-                )
-            },
-
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteGame(game.id)
-                        gamePendingDelete = null
-                    }
-                ) {
+                text = {
                     Text(
-                        text = "Confirm removal",
-                        color = RecommendedDanger
+                        "Remove “${game.title}” from the shared " +
+                                "recommended games list? This will not delete " +
+                                "it from users’ personal libraries."
                     )
-                }
-            },
+                },
 
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        gamePendingDelete = null
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onDeleteGame(game.id)
+                            gamePendingDelete = null
+                        }
+                    ) {
+                        Text(
+                            text = "Confirm removal",
+                            color = RecommendedDanger
+                        )
                     }
-                ) {
-                    Text("Cancel")
-                }
-            },
+                },
 
-            containerColor = RecommendedSurface,
-            titleContentColor = Color.White,
-            textContentColor = Color.LightGray
-        )
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            gamePendingDelete = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+
+                containerColor = RecommendedSurface,
+                titleContentColor = Color.White,
+                textContentColor = Color.LightGray
+            )
+        }
     }
 }
 
@@ -458,6 +475,7 @@ fun RecommendedGamesScreenPreview() {
         loading = false,
         error = null,
         onBackClick = {},
+        onAddClick = {},
         onGameClick = {},
         onDeleteGame = {},
         onRetry = {}
