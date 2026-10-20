@@ -1,7 +1,6 @@
 Error Model
 
 One consistent error body is used by every endpoint.
-
 Standard Error Body:
 
 {

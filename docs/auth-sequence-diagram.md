@@ -1,7 +1,8 @@
 # Auth Sequence Diagram
 
 The FavGame Android application uses GitHub OAuth Authorization Code with PKCE for authentication. 
-After authentication, the GitHub access token is stored on the device and sent as a Bearer token with protected API requests.
+After authentication, the GitHub access token is stored on the device and sent as a Bearer token 
+with protected API requests.
 
 ```mermaid
 sequenceDiagram

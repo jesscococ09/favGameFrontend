@@ -4,7 +4,8 @@ The FavGame system distinguishes between regular users and administrators.
 Both use the same underlying user data structure, but regular users have isadmin = false 
 and administrators have isadmin = true.
 ADMIN is shown separately in this diagram to represent the different permissions and 
-relationships of the administrator role. In the implemented database, administrators are stored in the same users table as regular users.
+relationships of the administrator role. In the implemented database, administrators 
+are stored in the same users table as regular users.
 
 ```mermaid
 erDiagram

@@ -2,7 +2,8 @@
 
 ## 1. The pitch (one paragraph)
 What the API does, who uses it, and why a client app would need it.  
-The API holds user information. The API also holds personal video game information and recommended video games. This app was made for users who wish to organize and sort video games. This app was made for gamers who play a lot of video games.
+The API holds user information. The API also holds personal video game information and recommended video games. 
+This app was made for users who wish to organize and sort video games. This app was made for gamers who play a lot of video games.
 
 ## 2. Resources
 | Resource | Key fields | Relationships |  

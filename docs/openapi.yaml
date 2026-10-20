@@ -8,8 +8,8 @@ info:
   title: FavGame API
   version: 1.0.0
   description: API contract for the FavGame game tracker. Users manage personal games, profiles, and shared recommendations.
-    Administrators manage users and recommendations. Authentication uses GitHub OAuth Authorization Code + PKCE. Standardized
-    errors use RFC 9457 Problem Details.
+    Administrators manage users and recommendations.
+    Authentication uses GitHub OAuth Authorization Code + PKCE. Standardized errors use RFC 9457 Problem Details.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
