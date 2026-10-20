@@ -1,36 +1,28 @@
 # Starter OpenAPI contract for CST 438 Project 02.
-# Copy to docs/openapi.yaml in your repo, then replace Workout/Exercise with YOUR resources.
+# Copy to docs/openapi.yaml in your repo.
 # Render it:   https://editor.swagger.io  (File > Import file, or paste)
 # Lint it:     npx @redocly/cli lint docs/openapi.yaml
 # Mock it:     npx @stoplight/prism-cli mock docs/openapi.yaml   -> http://127.0.0.1:4010
 openapi: 3.0.3
-
 info:
   title: FavGame API
   version: 1.0.0
-  description: |
-    API contract for FavGame API tracker.
-    Users manage their game library, view and edit their games, and see staff recommendations.
-    Authentication is handled through GitHub OAuth using Authorization Code + PKCE.
-    Every error uses RFC 9457 Problem Details (see components/schemas/Problem).
+  description: API contract for the FavGame game tracker. Users manage personal games, profiles, and shared recommendations.
+    Administrators manage users and recommendations. Authentication uses GitHub OAuth Authorization Code + PKCE. Standardized
+    errors use RFC 9457 Problem Details.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
   contact:
     name: Team 06
     url: https://github.com/jesscococ09/favGameBackend
-
 servers:
   - url: http://localhost:8080
     description: Local development
-  - url: https://your-api.example.com
-    description: Production (replace in Sprint 3)
-
-# Authentication is handled through GitHub OAuth.
-# The resulting token is sent as a Bearer token to protected API endpoints.
+  - url: https://favgame-backend.onrender.com
+    description: Production Render server
 security:
   - bearerAuth: []
-
 tags:
   - name: Library
     description: A user's personal game library.
@@ -39,13 +31,12 @@ tags:
   - name: Admin
     description: Admin-only user management.
   - name: Recommendations
-    description: Admin-created game recommendations.
-
+    description: Shared game recommendations managed by administrators.
 paths:
-
   /favGame/v1/users:
     get:
-      tags: [Users]
+      tags:
+        - Users
       operationId: getMyProfile
       summary: Retrieve signed-in user's profile information
       responses:
@@ -59,22 +50,26 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
     delete:
-      tags: [Users]
+      tags:
+        - Users
       operationId: deleteMyAccount
-      summary: Delete signed-in user's account and all associated data
+      summary: Delete signed-in user's account and personal game data
       responses:
-        '204':
+        '200':
           description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/users/name:
     patch:
-      tags: [Users]
+      tags:
+        - Users
       operationId: updateUserName
       summary: Update signed-in user's display name
       requestBody:
@@ -96,12 +91,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/users/icon:
     patch:
-      tags: [Users]
+      tags:
+        - Users
       operationId: updateUserIcon
-      summary: Update signed-in user's icon
+      summary: Update signed-in user's profile icon
       requestBody:
         required: true
         content:
@@ -110,7 +105,7 @@ paths:
               $ref: '#/components/schemas/IconPatch'
       responses:
         '200':
-          description: Icon updated
+          description: Profile icon updated
           content:
             application/json:
               schema:
@@ -121,144 +116,140 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/users/games:
     get:
-      tags: [Library]
+      tags:
+        - Library
       operationId: listUserLibrary
-      summary: List games in user's library
+      summary: List games in signed-in user's personal library
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
         - name: sort
           in: query
-          description: Sort user's games by column
+          required: false
+          description: Sort the user's personal games.
           schema:
             type: string
             enum:
               - alphabetical
               - rating
               - genre
-              - gameName
-            example: alphabetical
+          example: alphabetical
         - name: genre
           in: query
-          description: Filter user's games by genre
+          required: false
+          description: Filter the user's personal games by genre.
           schema:
             type: string
-            example: RPG
+          example: RPG
       responses:
         '200':
-          description: One page of the user's library
+          description: List of games belonging to the signed-in user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntryPage'
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIGame'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
     post:
-      tags: [Library]
+      tags:
+        - Library
       operationId: addGameToLibrary
-      summary: Add a game to user's library
+      summary: Add a game to signed-in user's personal library
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LibraryEntryCreate'
+              $ref: '#/components/schemas/APIGameCreate'
       responses:
-        '201':
-          description: Game added to library
-          headers:
-            Location:
-              description: URL of the new library entry
-              schema:
-                type: string
-                example: /favGame/v1/users/games/42
+        '200':
+          description: Game added to user's library
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntry'
+                $ref: '#/components/schemas/APIGame'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/users/games/search:
     get:
-      tags: [Library]
+      tags:
+        - Library
       operationId: searchUserLibrary
-      summary: Search user's games by name
+      summary: Search signed-in user's games by name
       parameters:
         - name: query
           in: query
           required: true
-          description: Game name or search text
+          description: Game name or partial game name.
           schema:
             type: string
-            example: Zelda
+          example: Zelda
       responses:
         '200':
-          description: Search results
+          description: Personal games whose names match the search
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntryPage'
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIGame'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/users/games/{id}:
     parameters:
-      - $ref: '#/components/parameters/LibraryEntryId'
-
+      - $ref: '#/components/parameters/APIGameId'
     get:
-      tags: [Library]
+      tags:
+        - Library
       operationId: getLibraryEntry
-      summary: View a single game in user's library
+      summary: Retrieve one game from signed-in user's personal library
       responses:
         '200':
-          description: The library entry
+          description: Personal game
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntry'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: '#/components/schemas/APIGame'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
     patch:
-      tags: [Library]
+      tags:
+        - Library
       operationId: updateLibraryEntry
-      summary: Update rating or comment for a game
+      summary: Update rating or comment for a personal game
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LibraryEntryPatch'
+              $ref: '#/components/schemas/APIGamePatch'
       responses:
         '200':
-          description: Library entry updated
+          description: Personal game updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntry'
+                $ref: '#/components/schemas/APIGame'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -267,29 +258,58 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
-    delete:
-      tags: [Library]
-      operationId: deleteLibraryEntry
-      summary: Remove a game from user's library
+    put:
+      tags:
+        - Library
+      operationId: replaceLibraryEntry
+      summary: Replace all editable attributes of a personal game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APIGameReplace'
       responses:
-        '204':
-          description: Game removed from library
+        '200':
+          description: Personal game attributes replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIGame'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
+    delete:
+      tags:
+        - Library
+      operationId: deleteLibraryEntry
+      summary: Remove a game from signed-in user's personal library
+      responses:
+        '200':
+          description: Game removed from personal library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /favGame/v1/users/games/{id}/comments:
     parameters:
-      - $ref: '#/components/parameters/LibraryEntryId'
-
+      - $ref: '#/components/parameters/APIGameId'
     post:
-      tags: [Library]
+      tags:
+        - Library
       operationId: addGameComment
-      summary: Add a comment to a game in user's library
+      summary: Add or replace the comment on a personal game
       requestBody:
         required: true
         content:
@@ -298,11 +318,11 @@ paths:
               $ref: '#/components/schemas/CommentCreate'
       responses:
         '200':
-          description: Comment added
+          description: Comment updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LibraryEntry'
+                $ref: '#/components/schemas/APIGame'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -311,28 +331,31 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/recommendations:
     get:
-      tags: [Recommendations]
+      tags:
+        - Recommendations
       operationId: listRecommendations
-      summary: View admin-created game recommendations
+      summary: View shared game recommendations
       responses:
         '200':
-          description: List of recommendations
+          description: List of shared recommendations
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecommendationPage'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recommendation'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
-
     post:
-      tags: [Admin]
+      tags:
+        - Recommendations
       operationId: createRecommendation
-      summary: Create a game recommendation
+      summary: Create a shared game recommendation
+      description: Administrator privileges are required.
       requestBody:
         required: true
         content:
@@ -340,7 +363,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RecommendationCreate'
       responses:
-        '201':
+        '200':
           description: Recommendation created
           content:
             application/json:
@@ -354,15 +377,15 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/recommendations/{id}:
     parameters:
       - $ref: '#/components/parameters/RecommendationId'
-
     patch:
-      tags: [Admin]
+      tags:
+        - Recommendations
       operationId: updateRecommendation
-      summary: Update a game recommendation
+      summary: Update selected attributes of a shared recommendation
+      description: Administrator privileges are required.
       requestBody:
         required: true
         content:
@@ -386,14 +409,27 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
-    delete:
-      tags: [Admin]
-      operationId: deleteRecommendation
-      summary: Delete a recommendation
+    put:
+      tags:
+        - Recommendations
+      operationId: replaceRecommendation
+      summary: Replace all editable attributes of a shared recommendation
+      description: Administrator privileges are required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationReplace'
       responses:
-        '204':
-          description: Recommendation deleted
+        '200':
+          description: Recommendation attributes replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recommendation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -402,48 +438,63 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
-  /favGame/v1/admin:
-    get:
-      tags: [Admin]
-      operationId: listUsers
-      summary: List all users
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
+    delete:
+      tags:
+        - Recommendations
+      operationId: deleteRecommendation
+      summary: Delete a shared recommendation
+      description: Administrator privileges are required.
       responses:
         '200':
-          description: One page of users
+          description: Recommendation deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserPage'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /favGame/v1/admin:
+    get:
+      tags:
+        - Admin
+      operationId: listUsers
+      summary: List all users
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
-
   /favGame/v1/admin/{userId}:
     parameters:
       - $ref: '#/components/parameters/UserId'
-
     get:
-      tags: [Admin]
+      tags:
+        - Admin
       operationId: getUser
-      summary: View one user
+      summary: Retrieve one user
       responses:
         '200':
-          description: The user
+          description: Requested user
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -452,11 +503,11 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
     patch:
-      tags: [Admin]
+      tags:
+        - Admin
       operationId: updateUserRole
-      summary: Grant or revoke admin privileges
+      summary: Grant or revoke administrator privileges
       requestBody:
         required: true
         content:
@@ -465,7 +516,7 @@ paths:
               $ref: '#/components/schemas/UserPatch'
       responses:
         '200':
-          description: User updated
+          description: User role updated
           content:
             application/json:
               schema:
@@ -480,16 +531,18 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
     delete:
-      tags: [Admin]
+      tags:
+        - Admin
       operationId: deleteUser
-      summary: Delete a user and all their data
+      summary: Delete another user and their personal game data
       responses:
-        '204':
+        '200':
           description: User deleted
-        '400':
-          $ref: '#/components/responses/BadRequest'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -498,92 +551,82 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-
 components:
-
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-      description: |
-        Bearer token used to access protected API endpoints.
-        User authentication is handled through GitHub OAuth using
-        Authorization Code + PKCE.
-
+      description: GitHub OAuth access token obtained using Authorization Code + PKCE.
   parameters:
     Page:
       name: page
       in: query
-      description: Zero-based page number
+      required: false
+      description: Zero-based page number.
       schema:
         type: integer
         minimum: 0
         default: 0
-
     Size:
       name: size
       in: query
-      description: Items per page
+      required: false
+      description: Number of personal games returned.
       schema:
         type: integer
         minimum: 1
-        maximum: 100
         default: 20
-
-    LibraryEntryId:
+    APIGameId:
       name: id
       in: path
       required: true
       schema:
         type: string
-        example: "10"
-
+      example: 550e8400-e29b-41d4-a716-446655440000
     UserId:
       name: userId
       in: path
       required: true
       schema:
         type: string
-        example: "12"
-
+      example: 550e8400-e29b-41d4-a716-446655440001
     RecommendationId:
       name: id
       in: path
       required: true
       schema:
         type: string
-        example: "rec1"
-
+      example: 550e8400-e29b-41d4-a716-446655440002
   schemas:
-
     User:
+      description: FavGame user account. Administrators use the same user model with isAdmin set to true.
       type: object
       required:
-        - id
         - githubId
         - displayName
         - isAdmin
       properties:
         id:
           type: string
-          example: "user123"
+          nullable: true
+          description: Internal user ID generated by the backend.
+          example: 550e8400-e29b-41d4-a716-446655440001
         githubId:
           type: string
-          example: "123456789"
+          example: '123456789'
         displayName:
           type: string
-          example: "JohnDoe123"
+          example: JohnDoe123
         iconUrl:
           type: string
           nullable: true
-          example: "https://example.com/icon.png"
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000001
         isAdmin:
           type: boolean
+          description: False for a regular user and true for an administrator.
           example: false
-
     UserPatch:
-      description: Change user admin status.
+      description: Change a user's administrator status.
       type: object
       required:
         - isAdmin
@@ -591,156 +634,161 @@ components:
         isAdmin:
           type: boolean
           example: true
-
     NamePatch:
-      description: Body for PATCH /users/name.
+      description: Body for PATCH /favGame/v1/users/name.
       type: object
       required:
         - displayName
       properties:
         displayName:
           type: string
-          example: "JohnDoe123"
-
+          example: JohnDoe123
     IconPatch:
-      description: Body for PATCH /users/icon.
+      description: Body for PATCH /favGame/v1/users/icon.
       type: object
       required:
         - iconUrl
       properties:
         iconUrl:
           type: string
-          example: "https://example.com/icon.png"
-
-    UserPage:
-      type: object
-      required:
-        - content
-        - page
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-        page:
-          $ref: '#/components/schemas/PageMeta'
-
-    Game:
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000001
+    APIGame:
+      description: Personal game stored in the API table.
       type: object
       required:
         - id
+        - githubId
         - gameName
-        - genre
+        - thumbnail
+        - gameDescription
         - platform
+        - genre
+        - rating
       properties:
         id:
           type: string
-          example: "zelda12"
-        thumbnail:
+          description: UUID generated for the personal game.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        githubId:
           type: string
-          example: "https://imageOfGame.com/zelda.png"
+          description: GitHub ID of the user who owns the game.
+          example: '123456789'
         gameName:
           type: string
-          example: "The Legend of Zelda"
+          example: The Legend of Zelda
+        thumbnail:
+          type: string
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000002
         gameDescription:
           type: string
-          example: "Follow Link along his adventure..."
+          example: Follow Link along his adventure.
         platform:
           type: string
-          example: "Switch"
+          example: Nintendo Switch
         genre:
           type: string
-          example: "Adventure"
+          example: Adventure
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "Loved this game!"
-
-    LibraryEntry:
+          example: Loved this game!
+    APIGameCreate:
+      description: Body for POST /favGame/v1/users/games. The backend generates id and obtains githubId from the authenticated
+        user.
       type: object
       required:
-        - id
-        - userId
-        - gameId
+        - gameName
       properties:
-        id:
+        gameName:
           type: string
-          example: "10"
-        userId:
+          example: The Legend of Zelda
+        thumbnail:
           type: string
-          example: "user123"
-        gameId:
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000002
+        gameDescription:
           type: string
-          example: "zelda12"
+          example: Follow Link along his adventure.
+        platform:
+          type: string
+          example: Nintendo Switch
+        genre:
+          type: string
+          example: Adventure
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "Loved this game!"
-
-    LibraryEntryCreate:
-      description: Body for POST /users/games.
-      type: object
-      required:
-        - gameId
-      properties:
-        gameId:
-          type: string
-          example: "zelda12"
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 10
-          example: 5
-        comment:
-          type: string
-          example: "Loved this game!"
-
-    LibraryEntryPatch:
-      description: Body for PATCH /users/games/{id}.
+          example: Loved this game!
+    APIGamePatch:
+      description: Body for PATCH /favGame/v1/users/games/{id}. Rating and comment are optional, but at least one property
+        must be supplied.
       type: object
       minProperties: 1
       properties:
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "Loved this game!"
-
-    LibraryEntryPage:
+          example: Loved this game!
+    APIGameReplace:
+      description: Body for PUT /favGame/v1/users/games/{id}.
       type: object
       required:
-        - content
-        - page
+        - gameName
+        - thumbnail
+        - gameDescription
+        - platform
+        - genre
+        - rating
       properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/LibraryEntry'
-        page:
-          $ref: '#/components/schemas/PageMeta'
-
+        gameName:
+          type: string
+          example: The Legend of Zelda
+        thumbnail:
+          type: string
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000002
+        gameDescription:
+          type: string
+          example: Follow Link along his adventure.
+        platform:
+          type: string
+          example: Nintendo Switch
+        genre:
+          type: string
+          example: Adventure
+        rating:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Zero represents not rated.
+          example: 8
+        comment:
+          type: string
+          example: Loved this game!
     CommentCreate:
-      description: Body for POST /users/games/{id}/comments.
+      description: Body for POST /favGame/v1/users/games/{id}/comments.
       type: object
       required:
         - comment
       properties:
         comment:
           type: string
-          example: "Loved this game!"
-
+          example: Loved this game!
     Recommendation:
+      description: Shared recommended game.
       type: object
       required:
         - id
@@ -750,139 +798,140 @@ components:
         - platform
         - genre
         - rating
-        - comment
       properties:
         id:
           type: string
-          example: "rec1"
+          description: UUID identifying the recommendation.
+          example: 550e8400-e29b-41d4-a716-446655440002
         thumbnail:
           type: string
-          example: "https://imageOfGame.com/zelda.png"
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000003
         gameName:
           type: string
-          example: "The Legend of Zelda"
+          example: The Legend of Zelda
         gameDescription:
           type: string
-          example: "Follow Link along his adventure..."
+          example: Follow Link along his adventure.
         platform:
           type: string
-          example: "Switch"
+          example: Nintendo Switch
         genre:
           type: string
-          example: "Adventure"
+          example: Adventure
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "The admin recommends this game!"
-
+          example: Recommended by the FavGame administrators.
     RecommendationCreate:
-      description: Body for POST /recommendations.
+      description: Body for POST /favGame/v1/recommendations.
       type: object
       required:
-        - thumbnail
         - gameName
-        - gameDescription
-        - platform
-        - genre
-        - rating
-        - comment
       properties:
         thumbnail:
           type: string
-          example: "https://imageOfGame.com/zelda.png"
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000003
         gameName:
           type: string
-          example: "The Legend of Zelda"
+          example: The Legend of Zelda
         gameDescription:
           type: string
-          example: "Follow Link along his adventure..."
+          example: Follow Link along his adventure.
         platform:
           type: string
-          example: "Switch"
+          example: Nintendo Switch
         genre:
           type: string
-          example: "Adventure"
+          example: Adventure
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "The admin recommends this game!"
-
+          example: Recommended by the FavGame administrators.
     RecommendationPatch:
-      description: Body for PATCH /recommendations/{id}.
+      description: Body for PATCH /favGame/v1/recommendations/{id}. Supplied attributes are updated;
       type: object
       minProperties: 1
       properties:
         thumbnail:
           type: string
-          example: "https://imageOfGame.com/zelda.png"
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000003
         gameName:
           type: string
-          example: "The Legend of Zelda"
+          example: The Legend of Zelda
         gameDescription:
           type: string
-          example: "Follow Link along his adventure..."
+          example: Follow Link along his adventure.
         platform:
           type: string
-          example: "Switch"
+          example: Nintendo Switch
         genre:
           type: string
-          example: "Adventure"
+          example: Adventure
         rating:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 10
-          example: 5
+          description: Zero represents not rated.
+          example: 8
         comment:
           type: string
-          example: "Updated recommendation comment."
-
-    RecommendationPage:
+          example: Recommended by the FavGame administrators.
+    RecommendationReplace:
+      description: Body for PUT /favGame/v1/recommendations/{id}.
       type: object
       required:
-        - content
-        - page
+        - gameName
+        - thumbnail
+        - gameDescription
+        - platform
+        - genre
+        - rating
       properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Recommendation'
-        page:
-          $ref: '#/components/schemas/PageMeta'
-
-    PageMeta:
-      description: |
-        Spring Data's paginated response metadata.
+        thumbnail:
+          type: string
+          example: content://media/picker/0/com.android.providers.media.photopicker/media/1000003
+        gameName:
+          type: string
+          example: The Legend of Zelda
+        gameDescription:
+          type: string
+          example: Follow Link along his adventure.
+        platform:
+          type: string
+          example: Nintendo Switch
+        genre:
+          type: string
+          example: Adventure
+        rating:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Zero represents not rated.
+          example: 8
+        comment:
+          type: string
+          example: Recommended by the FavGame administrators.
+    DeleteResponse:
+      description: Response returned after a successful delete operation.
       type: object
       required:
-        - size
-        - number
-        - totalElements
-        - totalPages
+        - status
       properties:
-        size:
-          type: integer
-          example: 20
-        number:
-          type: integer
-          example: 0
-        totalElements:
-          type: integer
-          format: int64
-          example: 57
-        totalPages:
-          type: integer
-          example: 3
-
+        status:
+          type: string
+          example: deleted
     Problem:
-      description: RFC 9457 Problem Details.
+      description: RFC 9457 Problem Details error response.
       type: object
       required:
         - title
@@ -891,6 +940,7 @@ components:
         type:
           type: string
           default: about:blank
+          example: about:blank
         title:
           type: string
           example: Not Found
@@ -899,24 +949,23 @@ components:
           example: 404
         detail:
           type: string
-          example: Game not found
+          example: Game not found.
         instance:
           type: string
-          example: /favGame/v1/users/games/zelda1234
-
+          example: /favGame/v1/users/games/550e8400-e29b-41d4-a716-446655440000
   responses:
-
     BadRequest:
-      description: Validation failed or malformed JSON.
+      description: Validation failed or the request contains malformed JSON.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
+            type: about:blank
             title: Bad Request
             status: 400
             detail: One or more fields failed validation.
-
+            instance: /favGame/v1/users/games
     Unauthorized:
       description: Missing or invalid authentication token.
       content:
@@ -924,10 +973,11 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
+            type: about:blank
             title: Unauthorized
             status: 401
             detail: Authentication is required.
-
+            instance: /favGame/v1/users/games
     Forbidden:
       description: Valid token, but the user is not allowed to perform the operation.
       content:
@@ -935,21 +985,23 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
+            type: about:blank
             title: Forbidden
             status: 403
             detail: Admin privileges are required.
-
+            instance: /favGame/v1/admin
     NotFound:
-      description: Requested resource does not exist.
+      description: Requested resource does not exist or is not accessible to the authenticated user.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
+            type: about:blank
             title: Not Found
             status: 404
             detail: Resource not found.
-
+            instance: /favGame/v1/users/games/550e8400-e29b-41d4-a716-446655440000
     InternalError:
       description: Unexpected server error.
       content:
@@ -957,6 +1009,8 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
+            type: about:blank
             title: Internal Server Error
             status: 500
             detail: An unexpected error occurred.
+            instance: /favGame/v1/users/games
