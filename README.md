@@ -2,20 +2,24 @@
 
 A Kotlin Android app, built with Jetpack Compose, for keeping track of the video games you own or want to play. You sign in, add games to your library, and browse, search, filter, and remove them. All data comes from our team's Spring Boot REST API.
 
-This repo is the **front end**. The API lives in its own repo: **[TODO: link to API repo]**
+This repo is the **front end**. The API lives in its own repo: [favGameBackend](https://github.com/jesscococ09/favGameBackend)
+
+- **API base URL:** `https://favgame-backend.onrender.com`
 
 ## Team
 
-| Name | GitHub |
-| --- | --- |
-| Athian Camberos | [@acamberos1] (https://github.com/acamberos1) |
+| Name | GitHub                                      |
+| --- |---------------------------------------------|
+| Athian Camberos | [@acamberos1](https://github.com/acamberos1) |
 | Jessika Torrealba  | [@jesscococ09](https://github.com/jesscococ09) |
-| Leonardo Lopez | [@Leobus] https://github.com/leodebuss |
+| Leonardo Lopez | [@Leobus](https://github.com/leodebuss)     |
 
-## Live API
+## Live API and other links
 
-- **API base URL:** `https://favgame-backend.onrender.com`
-- **Swagger docs:** `https://app.swaggerhub.com/apis/jesstorrealbaorganiz/favGame/v1`
+
+- **Swagger docs:** `https://favgame-backend.onrender.com/swagger-ui.html`
+- **render:** `https://favgame-backend.onrender.com`
+- **api documentation:** `https://favgame-backend.onrender.com/v3/api-docs`
 
 ## Tech stack
 
@@ -24,7 +28,7 @@ This repo is the **front end**. The API lives in its own repo: **[TODO: link to 
 | Language | Kotlin |
 | UI | Jetpack Compose |
 | Networking | Retrofit, OkHttp |
-| Auth | OAuth2 Authorization Code with PKCE ([TODO: Google or GitHub]) |
+| Auth | OAuth2 Authorization Code with PKCE  |
 | Architecture | MVVM (ViewModel and StateFlow) |
 | Testing | JUnit, coroutines-test, MockWebServer, Compose UI tests |
 | Build | Gradle (Kotlin DSL) |
@@ -45,7 +49,7 @@ The app also shows a message for 401, 403, 404, and 500 errors instead of a blan
 
 ### 1. Requirements
 
-- Android Studio [TODO: version, e.g. Ladybug or newer]
+- Android Studio [Android Studio Panda 4 | 2025.3.4 Patch 1]
 - JDK 17
 - An Android emulator or a physical device
 - Docker Desktop, only if you want to run the API locally
@@ -64,18 +68,17 @@ cd Project2_CST338_GROUP6
 ```properties
 sdk.dir=/path/to/your/Android/sdk
 OAUTH_CLIENT_ID=your-client-id
-API_BASE_URL=https://[TODO: your-host]/api/v1/
+
 ```
 
-[TODO: change these key names to match what `build.gradle.kts` actually reads]
 
 ### 4. (Optional) Run the API locally with Docker
 
 Do this from the **API repo**, not this one:
 
 ```bash
-git clone [TODO: API repo URL]
-cd [TODO: API repo folder]
+git clone https://github.com/jesscococ09/favGameBackend
+cd favGameBackend
 docker compose up --build
 ```
 
@@ -112,5 +115,5 @@ The emulator reaches your computer at `10.0.2.2`, not `localhost`. Plain HTTP is
 ./gradlew dokkaHtml
 ```
 
-## Demo
+
 
